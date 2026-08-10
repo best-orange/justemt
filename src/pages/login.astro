@@ -1,0 +1,85 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Particles from '../components/Particles.astro';
+import { AUTH_COOKIE, verifyToken } from '../lib/auth';
+
+export const prerender = false;
+
+// 已登录：直接放行到目标页
+const next = Astro.url.searchParams.get('next') ?? '/blog';
+if (verifyToken(Astro.cookies.get(AUTH_COOKIE)?.value)) {
+  return Astro.redirect(next.startsWith('/blog') ? next : '/blog');
+}
+const safeNext = next.startsWith('/blog') ? next : '/blog';
+---
+
+<BaseLayout title="风铃之间 · justEMT" description="说出暗号，进入冰封的阅览室。">
+  <section class="relative -mx-4 -mt-24 flex min-h-svh items-center justify-center overflow-hidden px-4 pt-0">
+    <div class="hero-bg absolute inset-0 -z-10"></div>
+    <Particles density={0.7} />
+    <div class="absolute inset-0 -z-[6] bg-night-950/60"></div>
+
+    <div class="glass w-full max-w-sm rounded-3xl p-8 text-center">
+      <svg class="mx-auto h-10 w-10 text-lilac-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+      </svg>
+      <h1 class="mt-4 font-display text-2xl font-bold tracking-wide text-white">
+        风铃之间
+      </h1>
+      <p class="mt-2 text-sm text-white/70">
+        前方是冰封的阅览室。<br />说出暗号，微精灵才会为你让路。
+      </p>
+
+      <form id="login-form" class="mt-6" data-next={safeNext}>
+        <input
+          type="password"
+          name="password"
+          required
+          autocomplete="current-password"
+          placeholder="暗号"
+          class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-center text-white placeholder-white/40 outline-none backdrop-blur transition-colors focus:border-lilac-300"
+        />
+        <p id="login-error" class="mt-3 hidden text-sm text-rose-300"></p>
+        <button
+          type="submit"
+          class="mt-4 w-full rounded-xl bg-gradient-to-r from-lilac-500 to-ice-400 px-4 py-2.5 font-medium text-white shadow-lg shadow-lilac-500/25 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          解 封
+        </button>
+      </form>
+
+      <a href="/" class="mt-5 inline-block text-xs text-white/50 transition-colors hover:text-white/80">
+        ← 返回美术馆大厅
+      </a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('login-form') as HTMLFormElement;
+  const errorEl = document.getElementById('login-error')!;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.classList.add('hidden');
+
+    const password = new FormData(form).get('password');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        location.href = form.dataset.next || '/blog';
+      } else {
+        errorEl.textContent = data.message ?? '验证失败';
+        errorEl.classList.remove('hidden');
+      }
+    } catch {
+      errorEl.textContent = '网络异常，请稍后再试';
+      errorEl.classList.remove('hidden');
+    }
+  });
+</script>

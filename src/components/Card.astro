@@ -1,0 +1,42 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  href: string;
+  date?: Date;
+  tags?: string[];
+  external?: boolean;
+}
+
+const { title, description, href, date, tags = [], external = false } = Astro.props;
+
+const dateStr = date
+  ? new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date)
+  : undefined;
+---
+
+<a
+  href={href}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener noreferrer' : undefined}
+  class="glass group block rounded-2xl p-5 transition-transform duration-300 hover:-translate-y-0.5"
+>
+  <div class="flex items-center justify-between gap-4">
+    <h3 class="font-display font-bold text-slate-900 group-hover:text-violet-700 dark:text-white dark:group-hover:text-lilac-300">
+      {title}
+    </h3>
+    {dateStr && <time class="shrink-0 text-sm text-slate-400">{dateStr}</time>}
+  </div>
+  <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+    {description}
+  </p>
+  {tags.length > 0 && (
+    <div class="mt-3 flex flex-wrap gap-2">
+      {tags.map((tag) => (
+        <span class="rounded-full border border-lilac-400/30 px-2.5 py-0.5 text-xs text-lilac-500 dark:text-lilac-300">
+          {tag}
+        </span>
+      ))}
+    </div>
+  )}
+</a>

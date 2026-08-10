@@ -1,0 +1,240 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* 使用 class 策略的深色模式：<html class="dark"> 时生效 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ================= 主题令牌 ================= */
+@theme {
+  /* 标题用衬线，营造绘本/美术馆气质 */
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+
+  /* 雪夜深蓝（暗色模式底色） */
+  --color-night-800: #1a2247;
+  --color-night-900: #101736;
+  --color-night-950: #0a0f26;
+
+  /* 薰衣草紫（主色）与冰蓝（点缀） */
+  --color-lilac-200: #e3dbfe;
+  --color-lilac-300: #cdbffe;
+  --color-lilac-400: #b79dfa;
+  --color-lilac-500: #a07ef0;
+  --color-ice-200: #d6efff;
+  --color-ice-300: #b3e0ff;
+  --color-ice-400: #8ecdf7;
+}
+
+/* ================= 基础 ================= */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #f7f6fd;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(183, 157, 250, 0.10), transparent),
+    radial-gradient(ellipse 60% 40% at 85% 10%, rgba(142, 205, 247, 0.08), transparent);
+}
+:where(.dark) body {
+  background-color: var(--color-night-950);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(160, 126, 240, 0.14), transparent),
+    radial-gradient(ellipse 60% 40% at 85% 10%, rgba(142, 205, 247, 0.10), transparent);
+}
+
+/* 全局细腻噪点，模拟雪粒胶片感 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: rgba(183, 157, 250, 0.35);
+}
+
+/* ================= 玻璃拟态 ================= */
+.glass {
+  background: color-mix(in srgb, white 60%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid rgba(183, 157, 250, 0.25);
+  box-shadow: 0 8px 32px rgba(90, 70, 160, 0.08);
+}
+:where(.dark) .glass {
+  background: color-mix(in srgb, var(--color-night-900) 55%, transparent);
+  border-color: rgba(205, 191, 254, 0.14);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* 冰晶渐变文字 */
+.text-frost {
+  background: linear-gradient(160deg, #7c5ce0 0%, #a07ef0 45%, #5aa7e0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+:where(.dark) .text-frost {
+  background: linear-gradient(160deg, #f3efff 0%, #cdbffe 45%, #b3e0ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ================= 沉浸式导航 ================= */
+#site-header[data-immersive].scrolled {
+  border-bottom: 1px solid rgba(183, 157, 250, 0.2);
+  background-color: color-mix(in srgb, #f7f6fd 80%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+:where(.dark) #site-header[data-immersive].scrolled {
+  border-bottom-color: rgba(205, 191, 254, 0.12);
+  background-color: color-mix(in srgb, var(--color-night-950) 80%, transparent);
+}
+#site-header[data-immersive].scrolled .nav-brand,
+#site-header[data-immersive].scrolled .nav-link {
+  color: var(--color-night-900);
+  text-shadow: none;
+  filter: none;
+}
+:where(.dark) #site-header[data-immersive].scrolled .nav-brand,
+:where(.dark) #site-header[data-immersive].scrolled .nav-link {
+  color: white;
+}
+#site-header[data-immersive].scrolled .nav-link:not(.is-active) {
+  color: #6b6486;
+}
+:where(.dark) #site-header[data-immersive].scrolled .nav-link:not(.is-active) {
+  color: #9a94b8;
+}
+
+/* ================= 首屏 ================= */
+.hero-bg {
+  /* 壁纸图层叠在渐变之上；放置 public/hero.jpg 后自动显示为壁纸，
+     无图时下方「雪夜极光」渐变兜底 */
+  background-image:
+    radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
+    url("/hero.jpg"),
+    linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero-title {
+  background: linear-gradient(180deg, #ffffff 0%, #e3dbfe 55%, #b3e0ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 24px rgba(205, 191, 254, 0.4));
+}
+
+/* 打字机光标 */
+.type-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.1em;
+  background: currentColor;
+  animation: caret-blink 1s step-end infinite;
+}
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
+
+/* 下滑提示 */
+.scroll-hint {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+@keyframes scroll-bounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint { animation: none; }
+  .type-caret { animation: none; }
+}
+
+/* ================= 滚动淡入 ================= */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ================= 名台词轮播 ================= */
+.quote-slide {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.quote-slide.is-active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  position: relative;
+}
+@media (prefers-reduced-motion: reduce) {
+  .quote-slide { transition: none; }
+}
+
+/* ================= 画廊 ================= */
+.masonry {
+  column-gap: 1rem;
+}
+.masonry > figure {
+  break-inside: avoid;
+}
+
+.gallery-item img {
+  transition: transform 0.5s ease, filter 0.5s ease;
+}
+.gallery-item:hover img {
+  transform: scale(1.03);
+  filter: brightness(1.06);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-item img { transition: none; }
+  .gallery-item:hover img { transform: none; }
+}
+
+/* 灯箱 */
+#lightbox {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+#lightbox.is-open {
+  opacity: 1;
+}
+
+/* 标签筛选按钮 */
+.tag-chip {
+  transition: all 0.2s ease;
+}
+.tag-chip.is-active {
+  background: linear-gradient(135deg, #a07ef0, #8ecdf7);
+  color: white;
+  border-color: transparent;
+}

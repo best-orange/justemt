@@ -1,0 +1,191 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const items = (await getCollection('gallery', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+// 收集全部标签用于筛选
+const allTags = [...new Set(items.flatMap((i) => i.data.tags))];
+---
+
+<BaseLayout title="画廊 · justEMT" description="冰晶与微光 —— 爱蜜莉雅主题画廊。">
+  <header class="reveal">
+    <h1 class="font-display text-4xl font-black tracking-wide">
+      <span class="text-frost">画廊</span>
+    </h1>
+    <p class="mt-3 text-slate-600 dark:text-slate-400">
+      冰晶、微光与雪夜。点击任意作品查看大图。
+    </p>
+  </header>
+
+  <!-- 标签筛选 -->
+  <div class="reveal mt-8 flex flex-wrap gap-2" id="tag-filter">
+    <button class="tag-chip is-active rounded-full border border-lilac-400/30 px-4 py-1.5 text-sm text-slate-600 dark:text-slate-300" data-tag="*">
+      全部
+    </button>
+    {allTags.map((tag) => (
+      <button class="tag-chip rounded-full border border-lilac-400/30 px-4 py-1.5 text-sm text-slate-600 dark:text-slate-300" data-tag={tag}>
+        {tag}
+      </button>
+    ))}
+  </div>
+
+  <!-- 瀑布流 -->
+  <div class="masonry reveal mt-8 columns-2 md:columns-3" id="gallery-grid">
+    {items.map((item, i) => (
+      <figure
+        class="gallery-item group relative mb-4 cursor-zoom-in overflow-hidden rounded-2xl"
+        data-tags={item.data.tags.join(',')}
+        data-index={i}
+        data-full={item.data.image}
+        data-title={item.data.title}
+        data-desc={item.data.description ?? ''}
+      >
+        <img
+          src={item.data.image}
+          alt={item.data.title}
+          loading="lazy"
+          class="block w-full"
+        />
+        <figcaption class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <p class="font-display text-sm font-bold text-white">{item.data.title}</p>
+          {item.data.description && (
+            <p class="mt-0.5 text-xs text-white/75">{item.data.description}</p>
+          )}
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+
+  <!-- 灯箱 -->
+  <div
+    id="lightbox"
+    class="pointer-events-none fixed inset-0 z-[80] hidden items-center justify-center bg-black/80 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+  >
+    <button id="lb-close" aria-label="关闭" class="absolute right-5 top-5 rounded-full p-2 text-white/70 transition-colors hover:text-white">
+      <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+    <button id="lb-prev" aria-label="上一张" class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-3 text-white/70 transition-colors hover:text-white sm:left-6">
+      <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+      </svg>
+    </button>
+    <button id="lb-next" aria-label="下一张" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-3 text-white/70 transition-colors hover:text-white sm:right-6">
+      <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+      </svg>
+    </button>
+    <figure class="max-h-[85vh] max-w-[88vw] text-center">
+      <img id="lb-img" src="" alt="" class="mx-auto max-h-[75vh] max-w-full rounded-xl object-contain shadow-2xl" />
+      <figcaption class="mt-4">
+        <p id="lb-title" class="font-display text-lg font-bold text-white"></p>
+        <p id="lb-desc" class="mt-1 text-sm text-white/70"></p>
+      </figcaption>
+    </figure>
+  </div>
+</BaseLayout>
+
+<script>
+  // ---------- 标签筛选 ----------
+  const chips = document.querySelectorAll<HTMLButtonElement>('#tag-filter .tag-chip');
+  const figures = document.querySelectorAll<HTMLElement>('#gallery-grid .gallery-item');
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      chips.forEach((c) => c.classList.remove('is-active'));
+      chip.classList.add('is-active');
+      const tag = chip.dataset.tag!;
+      figures.forEach((fig) => {
+        const show = tag === '*' || (fig.dataset.tags ?? '').split(',').includes(tag);
+        fig.style.display = show ? '' : 'none';
+      });
+    });
+  });
+
+  // ---------- 灯箱 ----------
+  const lightbox = document.getElementById('lightbox')!;
+  const lbImg = document.getElementById('lb-img') as HTMLImageElement;
+  const lbTitle = document.getElementById('lb-title')!;
+  const lbDesc = document.getElementById('lb-desc')!;
+  const visibleItems = () =>
+    [...figures].filter((f) => f.style.display !== 'none');
+
+  function openAt(fig: HTMLElement) {
+    lbImg.src = fig.dataset.full!;
+    lbImg.alt = fig.dataset.title!;
+    lbTitle.textContent = fig.dataset.title!;
+    lbDesc.textContent = fig.dataset.desc ?? '';
+    lightbox.classList.remove('hidden');
+    lightbox.classList.add('flex', 'is-open');
+    lightbox.style.pointerEvents = 'auto';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function close() {
+    lightbox.classList.add('hidden');
+    lightbox.classList.remove('flex', 'is-open');
+    lightbox.style.pointerEvents = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function step(dir: 1 | -1) {
+    const list = visibleItems();
+    if (!list.length) return;
+    const idx = list.findIndex((f) => f.dataset.full === lbImg.src.replace(location.origin, ''));
+    const next = list[(idx + dir + list.length) % list.length];
+    openAt(next);
+  }
+
+  figures.forEach((fig) => fig.addEventListener('click', () => openAt(fig)));
+  document.getElementById('lb-close')!.addEventListener('click', close);
+  document.getElementById('lb-prev')!.addEventListener('click', () => step(-1));
+  document.getElementById('lb-next')!.addEventListener('click', () => step(1));
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) close();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (lightbox.classList.contains('hidden')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === 'ArrowRight') step(1);
+  });
+
+  // 触摸滑动切换（移动端）：水平位移超过 50px 且明显大于垂直位移时切图
+  let touchX = 0;
+  let touchY = 0;
+  lightbox.addEventListener('touchstart', (e) => {
+    const t = e.changedTouches[0];
+    touchX = t.clientX;
+    touchY = t.clientY;
+  }, { passive: true });
+  lightbox.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchX;
+    const dy = t.clientY - touchY;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      step(dx < 0 ? 1 : -1); // 左滑下一张，右滑上一张
+    }
+  }, { passive: true });
+</script>
+
+<script>
+  // 滚动淡入
+  const items = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      }
+    },
+    { threshold: 0.1 }
+  );
+  items.forEach((el) => io.observe(el));
+</script>

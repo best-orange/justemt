@@ -1,0 +1,47 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+
+// 服务端渲染：由中间件校验访问权限
+export const prerender = false;
+---
+
+<BaseLayout title="博客 · Emilia" description="Emilia 的博客文章与心情笔记。">
+  <header class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="font-display text-3xl font-bold tracking-wide sm:text-4xl">
+        <span class="text-frost">冰封阅览室</span>
+      </h1>
+      <p class="mt-3 text-slate-600 dark:text-slate-400">只有知道暗号的人才能读到的文字。</p>
+    </div>
+    <button
+      id="logout-btn"
+      class="shrink-0 rounded-lg border border-lilac-400/30 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200"
+    >
+      重新上锁
+    </button>
+  </header>
+
+  <div class="mt-8 grid gap-4">
+    {posts.map((post) => (
+      <Card
+        title={post.data.title}
+        description={post.data.description}
+        href={`/blog/${post.id}`}
+        date={post.data.pubDate}
+        tags={post.data.tags}
+      />
+    ))}
+  </div>
+</BaseLayout>
+
+<script>
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    await fetch('/api/auth', { method: 'DELETE' });
+    location.href = '/';
+  });
+</script>

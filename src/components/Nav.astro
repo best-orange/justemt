@@ -1,0 +1,160 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+
+interface Props {
+  /** 沉浸式：初始透明悬浮在壁纸上，下滑后变为实色背景 */
+  immersive?: boolean;
+}
+
+const { immersive = false } = Astro.props;
+
+const links = [
+  { href: '/', label: '首页' },
+  { href: '/gallery', label: '画廊' },
+  { href: '/about', label: '档案' },
+];
+
+// 当前路径，用于高亮激活的导航项
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<header
+  id="site-header"
+  data-immersive={immersive ? 'true' : undefined}
+  class:list={[
+    'fixed inset-x-0 top-0 z-40 transition-colors duration-300',
+    immersive
+      // 首页初始：完全透明，无边框（下滑后由脚本加 .scrolled 切换）
+      ? 'bg-transparent'
+      : 'glass border-b',
+  ]}
+>
+  <nav class="mx-auto flex h-16 max-w-4xl items-center justify-between px-4">
+    <a
+      href="/"
+      class:list={[
+        'nav-brand font-display text-lg font-bold tracking-wide transition-colors',
+        immersive ? 'text-white drop-shadow' : 'text-frost',
+      ]}
+    >
+      just<em class="not-italic opacity-80">EMT</em>
+    </a>
+
+    <!-- 桌面端：横向链接 -->
+    <div class="hidden items-center gap-1 sm:flex">
+      {links.map((l) => (
+        <a
+          href={l.href}
+          class:list={[
+            'nav-link rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            isActive(l.href) && 'is-active',
+            immersive
+              ? (isActive(l.href)
+                  ? 'text-white drop-shadow'
+                  : 'text-white/70 hover:text-white drop-shadow')
+              : (isActive(l.href)
+                  ? 'text-violet-700 dark:text-lilac-300'
+                  : 'text-slate-500 hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200'),
+          ]}
+        >
+          {l.label}
+        </a>
+      ))}
+      <ThemeToggle />
+    </div>
+
+    <!-- 移动端：主题开关 + 汉堡按钮 -->
+    <div class="flex items-center gap-1 sm:hidden">
+      <ThemeToggle />
+      <button
+        id="menu-btn"
+        type="button"
+        aria-label="打开菜单"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class:list={[
+          'nav-link inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
+          immersive ? 'text-white drop-shadow' : 'text-slate-600 dark:text-slate-300',
+        ]}
+      >
+        <!-- 三横线 -->
+        <svg id="menu-icon-open" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+        <!-- 关闭叉 -->
+        <svg id="menu-icon-close" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- 移动端下拉面板 -->
+  <div
+    id="mobile-menu"
+    class="glass hidden border-b px-4 pb-4 pt-2 sm:hidden"
+  >
+    <div class="flex flex-col">
+      {links.map((l) => (
+        <a
+          href={l.href}
+          class:list={[
+            'rounded-lg px-3 py-3 text-base font-medium transition-colors',
+            isActive(l.href)
+              ? 'text-violet-700 dark:text-lilac-300'
+              : 'text-slate-600 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200',
+          ]}
+        >
+          {l.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</header>
+
+<script is:inline>
+  (function () {
+    const btn = document.getElementById('menu-btn');
+    const panel = document.getElementById('mobile-menu');
+    const iconOpen = document.getElementById('menu-icon-open');
+    const iconClose = document.getElementById('menu-icon-close');
+    if (!btn || !panel) return;
+
+    const setOpen = (open) => {
+      panel.classList.toggle('hidden', !open);
+      iconOpen?.classList.toggle('hidden', open);
+      iconClose?.classList.toggle('hidden', !open);
+      btn.setAttribute('aria-expanded', String(open));
+    };
+
+    btn.addEventListener('click', () =>
+      setOpen(panel.classList.contains('hidden'))
+    );
+    // 点击链接后收起
+    panel.querySelectorAll('a').forEach((a) =>
+      a.addEventListener('click', () => setOpen(false))
+    );
+    // 窗口拉宽到桌面尺寸时收起，避免状态残留
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 640) setOpen(false);
+    });
+  })();
+</script>
+
+{immersive && (
+  <script is:inline>
+    (function () {
+      const header = document.getElementById('site-header');
+      if (!header) return;
+      // 首页下滑超过一屏的 60% 时，导航切换为实色背景
+      const onScroll = () => {
+        const scrolled = window.scrollY > window.innerHeight * 0.6;
+        header.classList.toggle('scrolled', scrolled);
+      };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    })();
+  </script>
+)}

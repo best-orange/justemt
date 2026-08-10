@@ -23,3 +23,7 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 .vercel
+
+# 本地协作说明，不推送
+AGENTS.md
+CLAUDE.md

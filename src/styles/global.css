@@ -27,6 +27,11 @@
 /* ================= 基础 ================= */
 html {
   scroll-behavior: smooth;
+  /* 让滚动条、表单控件等原生 UI 跟随主题（移动端尤其明显） */
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {

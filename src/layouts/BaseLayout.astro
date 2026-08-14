@@ -36,12 +36,18 @@ const {
     />
 
     <!-- 在页面渲染前设定主题，避免刷新时闪烁；默认雪夜（暗色）模式 -->
+    <meta name="theme-color" content="#0a0f26" />
     <script is:inline>
       (function () {
         const stored = localStorage.getItem('theme');
-        if (stored === 'dark' || !stored) {
+        const dark = stored === 'dark' || !stored;
+        if (dark) {
           document.documentElement.classList.add('dark');
         }
+        // 同步移动端浏览器地址栏配色
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute('content', dark ? '#0a0f26' : '#f7f6fd');
       })();
     </script>
   </head>

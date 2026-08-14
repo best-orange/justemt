@@ -4,7 +4,15 @@ export const AUTH_COOKIE = 'emt_auth';
 /** 会话有效期：7 天 */
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
-const secret = () => import.meta.env.AUTH_SECRET ?? 'just-emt-dev-secret';
+const secret = (): string => {
+  const value = import.meta.env.AUTH_SECRET as string | undefined;
+  if (value) return value;
+  // 生产环境缺失时必须显式失败：兜底值会随源码公开，等于没有密钥
+  if (import.meta.env.PROD) {
+    throw new Error('AUTH_SECRET 未配置：生产环境禁止使用内置兜底密钥，请在部署平台设置该环境变量');
+  }
+  return 'just-emt-dev-secret';
+};
 
 /** 生成签名会话令牌（含签发时间戳，单位：秒） */
 export function createToken(now = Math.floor(Date.now() / 1000)): string {

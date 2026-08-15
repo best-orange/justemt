@@ -27,3 +27,11 @@ pnpm-debug.log*
 # 本地协作说明，不推送
 AGENTS.md
 CLAUDE.md
+.env*
+# 模板不含真实值，需要跟随仓库
+!.env.example
+
+# 集成自动安装的 agent skill 文档，属于本地工具链
+.agents/
+.claude/
+skills-lock.json

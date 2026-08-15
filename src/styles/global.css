@@ -120,17 +120,59 @@ body::after {
 
 /* ================= 首屏 ================= */
 .hero-bg {
-  /* 壁纸图层叠在渐变之上；放置 public/hero.jpg 后自动显示为壁纸，
-     无图时下方「雪夜极光」渐变兜底 */
+  /* 壁纸按「主题 × 设备」四选一，缺图时自动落到下一层兜底：
+     亮色桌面 hero-light.jpg / 亮色移动 hero-light-mobile.jpg /
+     暗色桌面 hero.jpg / 暗色移动 hero-dark-mobile.jpg，
+     全部缺失时由最底层的「雪夜极光」渐变兜底 */
+  background-image:
+    linear-gradient(rgba(10, 15, 38, 0.35), rgba(10, 15, 38, 0.12)),
+    radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
+    url("/hero-light.jpg"),
+    url("/hero.jpg"),
+    linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 亮色移动端：竖版构图 */
+@media (max-width: 768px) {
+  .hero-bg {
+    background-image:
+      linear-gradient(rgba(10, 15, 38, 0.35), rgba(10, 15, 38, 0.12)),
+      radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
+      url("/hero-light-mobile.jpg"),
+      url("/hero-light.jpg"),
+      url("/hero.jpg"),
+      linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
+  }
+}
+
+/* 暗色：去掉亮纹遮罩，换回深色壁纸 */
+:where(.dark) .hero-bg {
   background-image:
     radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
     radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
     radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
     url("/hero.jpg"),
     linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+}
+
+/* 暗色移动端：竖版深色壁纸 */
+@media (max-width: 768px) {
+  :where(.dark) .hero-bg {
+    background-image:
+      radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
+      url("/hero-dark-mobile.jpg"),
+      url("/hero.jpg"),
+      linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
+  }
 }
 
 .hero-title {

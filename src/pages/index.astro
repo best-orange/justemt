@@ -1,13 +1,7 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Particles from '../components/Particles.astro';
 import { quotes } from '../data/quotes';
-
-// 画廊精选（最新 4 件）
-const featured = (await getCollection('gallery', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
-  .slice(0, 4);
 ---
 
 <BaseLayout immersive>
@@ -90,8 +84,7 @@ const featured = (await getCollection('gallery', ({ data }) => !data.draft))
     </section>
 
     <!-- 画廊精选 -->
-    {featured.length > 0 && (
-      <section class="reveal mt-24">
+    <section class="reveal mt-24" id="featured-gallery">
         <div class="flex items-end justify-between">
           <h2 class="font-display text-2xl font-bold tracking-wide sm:text-3xl">
             <span class="text-frost">馆藏精选</span>
@@ -100,26 +93,8 @@ const featured = (await getCollection('gallery', ({ data }) => !data.draft))
             进入画廊 →
           </a>
         </div>
-        <div class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {featured.map((item) => (
-            <a
-              href="/gallery"
-              class="gallery-item group relative block overflow-hidden rounded-2xl"
-            >
-              <img
-                src={item.data.image}
-                alt={item.data.title}
-                loading="lazy"
-                class="aspect-[3/4] w-full object-cover"
-              />
-              <span class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <span class="font-display text-sm font-bold text-white">{item.data.title}</span>
-              </span>
-            </a>
-          ))}
-        </div>
+        <div class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4" id="featured-gallery-grid"></div>
       </section>
-    )}
 
   </div>
 </BaseLayout>
@@ -205,4 +180,39 @@ const featured = (await getCollection('gallery', ({ data }) => !data.draft))
     { threshold: 0.15 }
   );
   items.forEach((el) => io.observe(el));
+</script>
+
+<script>
+  type FeaturedPhoto = { title: string; image: string; thumbnail: string; width: number; height: number };
+  const featuredGrid = document.getElementById('featured-gallery-grid');
+  if (featuredGrid) {
+    fetch('/api/gallery?limit=4&tag=*')
+      .then((response) => response.json() as Promise<{ items?: FeaturedPhoto[] }>)
+      .then((body) => {
+        for (const item of body.items ?? []) {
+          const link = document.createElement('a');
+          link.href = '/gallery';
+          link.className = 'gallery-item group relative block overflow-hidden rounded-2xl';
+          const image = document.createElement('img');
+          image.src = item.thumbnail || item.image;
+          image.alt = item.title;
+          image.loading = 'lazy';
+          if (item.width > 0 && item.height > 0) {
+            image.width = item.width;
+            image.height = item.height;
+          }
+          image.className = 'aspect-[3/4] w-full object-cover';
+          const label = document.createElement('span');
+          label.className = 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100';
+          const title = document.createElement('span');
+          title.className = 'font-display text-sm font-bold text-white';
+          title.textContent = item.title;
+          label.append(title);
+          link.append(image, label);
+          featuredGrid.append(link);
+        }
+        if (!featuredGrid.children.length) featuredGrid.closest('section')?.remove();
+      })
+      .catch(() => featuredGrid.closest('section')?.remove());
+  }
 </script>

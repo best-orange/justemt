@@ -1,43 +1,61 @@
-# Astro Starter Kit: Minimal
+# justEMT
+
+爱蜜莉雅主题站：沉浸式首页、瀑布流画廊、受保护博客和可选音乐播放器。
+
+## 开发
 
 ```sh
-npm create astro@latest -- --template minimal
+npm install
+npm run dev
+npm run astro -- check
+npm run build
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## 画廊与 Cloudflare R2
 
-## 🚀 Project Structure
+画廊现在支持两种来源：
 
-Inside of your Astro project, you'll see the following folders and files:
+- 未配置 R2 时，读取 `src/content/gallery/*.yaml` 和 `public/gallery/`，现有站点行为不变。
+- 配置 R2 后，`/gallery/manage` 可批量选择图片。浏览器会生成 WebP 预览图/缩略图并直传 R2，图片清单保存在 `gallery/manifest.json`；R2 图片与仓库里的 YAML 内容会合并显示，方便逐步迁移。
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+Vercel 环境变量：
+
+```dotenv
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_PUBLIC_URL=https://img.example.com
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+管理页复用博客登录会话，因此还需要配置 `BLOG_PASSWORD` 和 `AUTH_SECRET`。登录后访问 `/gallery/manage`。
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Cloudflare 控制台需要完成：
 
-Any static assets, like images, can be placed in the `public/` directory.
+1. 创建 R2 bucket，例如 `justemt-gallery`。
+2. 创建限定到这个 bucket 的 **Object Read & Write** API Token，将 Access Key ID 和 Secret Access Key 填入 Vercel。
+3. 给 bucket 绑定公开自定义域名，例如 `img.example.com`，将该域名填入 `R2_PUBLIC_URL`。`r2.dev` 仅建议用于测试。
+4. 配置 bucket CORS，允许站点域名和本地开发端口执行 `PUT`，并允许 `Content-Type`、`Cache-Control` 请求头：
 
-## 🧞 Commands
+```json
+[
+  {
+    "AllowedOrigins": [
+      "https://你的站点域名",
+      "http://localhost:4321"
+    ],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["Content-Type", "Cache-Control"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
 
-All commands are run from the root of the project, from a terminal:
+5. 部署后打开 `/gallery/manage`，选择图片上传。上传完成后可删除仓库里的旧图片和对应 YAML；删除前建议先确认 R2 画廊显示正常。
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+R2 官方文档：
 
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- [S3 API 凭据](https://developers.cloudflare.com/r2/api/s3/tokens/)
+- [公开 bucket 与自定义域名](https://developers.cloudflare.com/r2/buckets/public-buckets/)
+- [CORS](https://developers.cloudflare.com/r2/buckets/cors/)

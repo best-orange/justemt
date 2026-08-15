@@ -8,9 +8,9 @@ export const prerender = false;
 // 已登录：直接放行到目标页
 const next = Astro.url.searchParams.get('next') ?? '/blog';
 if (verifyToken(Astro.cookies.get(AUTH_COOKIE)?.value)) {
-  return Astro.redirect(next.startsWith('/blog') ? next : '/blog');
+  return Astro.redirect(next.startsWith('/blog') || next === '/gallery/manage' ? next : '/blog');
 }
-const safeNext = next.startsWith('/blog') ? next : '/blog';
+const safeNext = next.startsWith('/blog') || next === '/gallery/manage' ? next : '/blog';
 ---
 
 <BaseLayout title="风铃之间 · justEMT" description="说出暗号，进入冰封的阅览室。">

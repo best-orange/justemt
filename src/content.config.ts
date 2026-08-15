@@ -20,6 +20,12 @@ const gallery = defineCollection({
     title: z.string(),
     /** 图片路径（public/ 下） */
     image: z.string(),
+    /** 可选的预览图与缩略图；远程图库迁移后用于渐进加载 */
+    preview: z.string().optional(),
+    thumbnail: z.string().optional(),
+    /** 图片尺寸；没有填写时画廊会使用保守的 3:4 占位比例 */
+    width: z.number().int().positive().optional(),
+    height: z.number().int().positive().optional(),
     /** 作品说明 */
     description: z.string().optional(),
     date: z.coerce.date(),

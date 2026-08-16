@@ -125,7 +125,6 @@ body::after {
      暗色桌面 hero.jpg / 暗色移动 hero-dark-mobile.jpg，
      全部缺失时由最底层的「雪夜极光」渐变兜底 */
   background-image:
-    linear-gradient(rgba(10, 15, 38, 0.35), rgba(10, 15, 38, 0.12)),
     radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
     radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
     radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
@@ -141,7 +140,6 @@ body::after {
 @media (max-width: 768px) {
   .hero-bg {
     background-image:
-      linear-gradient(rgba(10, 15, 38, 0.35), rgba(10, 15, 38, 0.12)),
       radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
       radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
       radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
@@ -152,7 +150,7 @@ body::after {
   }
 }
 
-/* 暗色：去掉亮纹遮罩，换回深色壁纸 */
+/* 暗色：换回深色壁纸 */
 :where(.dark) .hero-bg {
   background-image:
     radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),

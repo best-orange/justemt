@@ -41,13 +41,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <button id="lb-close" aria-label="关闭" class="absolute right-5 top-5 rounded-full p-2 text-white/70 transition-colors hover:text-white">
       <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
     </button>
-    <button id="lb-prev" aria-label="上一张" class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-3 text-white/70 transition-colors hover:text-white sm:left-6">
+    <button id="lb-prev" aria-label="上一张" class="absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full p-4 text-white/70 transition-colors hover:text-white sm:left-6">
       <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
     </button>
-    <button id="lb-next" aria-label="下一张" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-3 text-white/70 transition-colors hover:text-white sm:right-6">
+    <button id="lb-next" aria-label="下一张" class="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full p-4 text-white/70 transition-colors hover:text-white sm:right-6">
       <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5 7.5-7.5" /></svg>
     </button>
-    <figure class="max-h-[88vh] max-w-[92vw] text-center">
+    <figure class="w-full max-h-[88vh] max-w-[92vw] text-center">
       <div class="relative min-h-24 min-w-24">
         <img id="lb-preview" src="" alt="" class="mx-auto max-h-[78vh] max-w-full rounded-xl object-contain opacity-70 blur-sm transition-opacity" />
         <img id="lb-img" src="" alt="" class="absolute inset-0 mx-auto max-h-[78vh] max-w-full rounded-xl object-contain opacity-0 transition-opacity" />

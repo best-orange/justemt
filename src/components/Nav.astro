@@ -36,7 +36,7 @@ const isActive = (href: string) =>
       href="/"
       class:list={[
         'nav-brand font-display text-lg font-bold tracking-wide transition-colors',
-        immersive ? 'text-white drop-shadow' : 'text-frost',
+        immersive ? 'text-[#3d3658] dark:text-white dark:drop-shadow' : 'text-frost',
       ]}
     >
       just<em class="not-italic opacity-80">EMT</em>
@@ -52,8 +52,8 @@ const isActive = (href: string) =>
             isActive(l.href) && 'is-active',
             immersive
               ? (isActive(l.href)
-                  ? 'text-white drop-shadow'
-                  : 'text-white/70 hover:text-white drop-shadow')
+                  ? 'text-[#2e2848] dark:text-white dark:drop-shadow'
+                  : 'text-[#4a4368]/75 hover:text-[#2e2848] dark:text-white/70 dark:hover:text-white dark:drop-shadow')
               : (isActive(l.href)
                   ? 'text-violet-700 dark:text-lilac-300'
                   : 'text-slate-500 hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200'),
@@ -76,7 +76,7 @@ const isActive = (href: string) =>
         aria-controls="mobile-menu"
         class:list={[
           'nav-link inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-          immersive ? 'text-white drop-shadow' : 'text-slate-600 dark:text-slate-300',
+          immersive ? 'text-[#3d3658] dark:text-white dark:drop-shadow' : 'text-slate-600 dark:text-slate-300',
         ]}
       >
         <!-- 三横线 -->

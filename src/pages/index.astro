@@ -12,13 +12,13 @@ import { quotes } from '../data/quotes';
     <div class="absolute inset-0 -z-[6] hidden bg-gradient-to-b from-black/20 via-transparent to-night-950/80 dark:block"></div>
 
     <div class="px-4 text-center">
-      <p class="font-display text-sm tracking-[0.5em] text-white/60 sm:text-base">
+      <p class="font-display text-sm tracking-[0.5em] text-[#4a4368]/70 dark:text-white/60 sm:text-base">
         エミリアたん、マジ天使
       </p>
       <h1 class="hero-title mt-4 font-display text-7xl font-black tracking-tight sm:text-9xl">
         E·M·T
       </h1>
-      <p class="mx-auto mt-6 max-w-md text-base leading-relaxed text-white/80 drop-shadow sm:text-lg">
+      <p class="mx-auto mt-6 max-w-md text-base leading-relaxed text-[#3d3658]/85 drop-shadow dark:text-white/80 sm:text-lg">
         <span id="typewriter"></span><span class="type-caret"></span>
       </p>
     </div>
@@ -26,7 +26,7 @@ import { quotes } from '../data/quotes';
     <a
       href="#content"
       aria-label="向下滚动"
-      class="scroll-hint absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 transition-colors hover:text-white"
+        class="scroll-hint absolute bottom-8 left-1/2 -translate-x-1/2 text-[#4a4368]/70 transition-colors hover:text-[#2e2848] dark:text-white/70 dark:hover:text-white"
     >
       <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -56,6 +56,22 @@ import { quotes } from '../data/quotes';
           <path d="M9.5 8C7 8 5 10 5 12.5S7 17 9.5 17c.4 0 .8-.1 1.1-.2C10 18.4 8.6 19.6 7 20.2l.6 1.3c3.4-1 5.9-4.2 5.9-8C13.5 10.4 11.8 8 9.5 8Zm9 0C16 8 14 10 14 12.5S16 17 18.5 17c.4 0 .8-.1 1.1-.2-.6 1.6-2 2.8-3.6 3.4l.6 1.3c3.4-1 5.9-4.2 5.9-8 0-3.1-1.7-5.5-4-5.5Z"/>
         </svg>
         <div id="quote-carousel" class="relative mt-6 min-h-32">
+          <button
+            id="quote-prev"
+            type="button"
+            aria-label="上一条台词"
+            class="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 text-lilac-400/60 transition-colors hover:text-lilac-500 sm:-left-10 dark:text-lilac-300/60 dark:hover:text-lilac-200"
+          >
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+          </button>
+          <button
+            id="quote-next"
+            type="button"
+            aria-label="下一条台词"
+            class="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 text-lilac-400/60 transition-colors hover:text-lilac-500 sm:-right-10 dark:text-lilac-300/60 dark:hover:text-lilac-200"
+          >
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+          </button>
           {quotes.map((q, i) => (
             <blockquote class:list={['quote-slide', { 'is-active': i === 0 }]}>
               <p class="font-display text-xl font-bold leading-relaxed text-slate-800 dark:text-slate-100 sm:text-2xl">
@@ -162,6 +178,14 @@ import { quotes } from '../data/quotes';
     dots.forEach((dot, i) =>
       dot.addEventListener('click', () => { activate(i); start(); })
     );
+    document.getElementById('quote-prev')?.addEventListener('click', () => {
+      activate((current - 1 + slides.length) % slides.length);
+      start();
+    });
+    document.getElementById('quote-next')?.addEventListener('click', () => {
+      activate((current + 1) % slides.length);
+      start();
+    });
     document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
     start();
   }

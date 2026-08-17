@@ -23,15 +23,11 @@ export const playlistId = () => import.meta.env.MUSIC_PLAYLIST_ID as string | un
  */
 const level = () => (import.meta.env.MUSIC_LEVEL as string | undefined) ?? 'exhigh';
 
-export const MUSIC_MOODS = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
-export type MusicMood = (typeof MUSIC_MOODS)[number];
-
 export type Track = {
   id: string;
   name: string;
   artist: string;
   cover: string;
-  mood: MusicMood;
 };
 
 export class MusicApiError extends Error {
@@ -94,17 +90,14 @@ export async function fetchPlaylist(id: string): Promise<Track[]> {
   const tracks: unknown = data?.tracks;
   if (!Array.isArray(tracks)) return [];
 
-  const size = Math.max(1, Math.ceil(tracks.length / MUSIC_MOODS.length));
   return tracks
-    .map((t: any, index: number): Track | null => {
+    .map((t: any): Track | null => {
       if (t?.id == null) return null;
       return {
         id: String(t.id),
         name: t.name ?? '未知曲目',
         artist: Array.isArray(t.ar) ? t.ar.map((a: any) => a?.name).filter(Boolean).join(' / ') : '',
         cover: t.al?.picUrl ?? '',
-        // 上游歌单没有氛围标签，按原歌单顺序分成四组，保证展示稳定且不改变上游来源。
-        mood: MUSIC_MOODS[Math.min(MUSIC_MOODS.length - 1, Math.floor(index / size))],
       };
     })
     .filter((t): t is Track => t !== null);

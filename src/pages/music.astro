@@ -2,7 +2,6 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const musicAvailable = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_PLAYLIST_ID);
-const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
 ---
 
 <BaseLayout wide title="音乐室 · justEMT" description="Emilia 的雪夜音乐室，收录冰晶与微光。">
@@ -38,7 +37,6 @@ const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
               <p class="text-[0.65rem] tracking-[0.26em] text-lilac-200/75">NOW PLAYING</p>
               <h2 id="room-title" class="mt-2 truncate font-display text-xl font-bold text-white">正在打开音乐室…</h2>
               <p id="room-artist" class="mt-1 truncate text-sm text-white/65"></p>
-              <p id="room-mood" class="mt-4 text-xs tracking-widest text-ice-200/80"></p>
             </div>
           </div>
 
@@ -67,18 +65,11 @@ const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
       <div class="flex items-end justify-between gap-4">
         <div>
           <p class="eyebrow text-lilac-500 dark:text-lilac-300">THE FIXED PLAYLIST</p>
-          <h2 class="mt-3 font-display text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">按氛围收好每一首歌</h2>
+          <h2 class="mt-3 font-display text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">RE:0 曲目收藏</h2>
         </div>
         <span id="room-count" class="text-sm tabular-nums text-slate-400"></span>
       </div>
-      <div id="room-playlist" class="mt-8 grid gap-10 md:grid-cols-2" aria-live="polite">
-        {moods.map((moodName) => (
-          <section class="room-mood-group" data-mood={moodName}>
-            <h3 class="flex items-center gap-3 font-display text-lg font-bold text-slate-800 dark:text-slate-100"><span class="h-px w-8 bg-lilac-400/60" aria-hidden="true"></span>{moodName}</h3>
-            <div class="room-track-list mt-3 divide-y divide-lilac-400/10"></div>
-          </section>
-        ))}
-      </div>
+      <div id="room-playlist" class="room-track-list mt-8 max-w-3xl divide-y divide-lilac-400/10" aria-live="polite"></div>
       <p id="room-status" class="mt-8 text-sm text-slate-400">正在整理曲目…</p>
     </section>
 
@@ -89,9 +80,8 @@ const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
 </BaseLayout>
 
 <script>
-  type Track = { id: string; name: string; artist: string; cover: string; mood?: string };
+  type Track = { id: string; name: string; artist: string; cover: string };
   type State = { tracks: Track[]; index: number; playing: boolean; currentTime: number; duration: number; repeat: boolean };
-  const moods = ['雪夜', '圣域', '王选', '安静陪伴'];
   const initializeMusicRoom = () => {
     const room = document.getElementById('music-room');
     if (!room || room.dataset.initialized) return;
@@ -100,7 +90,6 @@ const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
     const placeholder = document.getElementById('room-cover-placeholder')!;
     const title = document.getElementById('room-title')!;
     const artist = document.getElementById('room-artist')!;
-    const mood = document.getElementById('room-mood')!;
     const progress = document.getElementById('room-progress') as HTMLInputElement;
     const current = document.getElementById('room-current')!;
     const duration = document.getElementById('room-duration')!;
@@ -115,11 +104,8 @@ const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
 
     const dispatch = (name: string, detail?: unknown) => window.dispatchEvent(new CustomEvent(name, { detail }));
     const renderPlaylist = (tracks: Track[], activeIndex: number) => {
-      playlist.querySelectorAll<HTMLElement>('.room-track-list').forEach((list) => list.replaceChildren());
+      playlist.replaceChildren();
       tracks.forEach((track, index) => {
-        const fallbackMood = moods[Math.min(moods.length - 1, Math.floor(index / Math.max(1, Math.ceil(tracks.length / moods.length))))];
-        const group = playlist.querySelector<HTMLElement>(`[data-mood="${CSS.escape(track.mood ?? fallbackMood)}"] .room-track-list`);
-        if (!group) return;
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'room-track group flex w-full items-center gap-3 py-3 text-left transition-colors hover:text-violet-700 dark:hover:text-lilac-200';
@@ -143,7 +129,7 @@ const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
         icon.textContent = '▶';
         button.append(number, text, icon);
         button.addEventListener('click', () => dispatch('justemt:music:select', { id: track.id, autoplay: true }));
-        group.append(button);
+        playlist.append(button);
       });
       playlist.querySelectorAll<HTMLButtonElement>('.room-track').forEach((button) => {
         const active = button.dataset.trackId === tracks[activeIndex]?.id;
@@ -160,8 +146,6 @@ const moods = ['雪夜', '圣域', '王选', '安静陪伴'] as const;
       if (track) {
         title.textContent = track.name;
         artist.textContent = track.artist || 'Emilia selection';
-        const fallbackMood = moods[Math.min(moods.length - 1, Math.floor(state.index / Math.max(1, Math.ceil(state.tracks.length / moods.length))))];
-        mood.textContent = track.mood ?? fallbackMood;
         if (track.cover) {
           cover.src = `${track.cover}?param=300y300`;
           cover.alt = `${track.name} 封面`;

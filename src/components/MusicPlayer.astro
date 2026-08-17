@@ -46,7 +46,6 @@ const enabled = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_P
           <p id="mp-title" class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">正在打开音乐室…</p>
           <p id="mp-artist" class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400"></p>
         </div>
-        <span id="mp-mood" class="shrink-0 text-[0.65rem] tracking-widest text-lilac-500 dark:text-lilac-300"></span>
       </div>
       <input id="mp-progress" class="music-progress mt-4 w-full" type="range" min="0" max="0" step="1" value="0" aria-label="播放进度" />
       <div class="mt-1 flex justify-between text-[0.65rem] tabular-nums text-slate-400" aria-hidden="true"><span id="mp-current">0:00</span><span id="mp-duration">0:00</span></div>
@@ -76,7 +75,7 @@ const enabled = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_P
 
   if (root && !root.dataset.initialized) {
     root.dataset.initialized = 'true';
-    type Track = { id: string; name: string; artist: string; cover: string; mood?: string };
+    type Track = { id: string; name: string; artist: string; cover: string };
     type State = { tracks: Track[]; index: number; playing: boolean; currentTime: number; duration: number; repeat: boolean };
     const storageKey = 'justemt-music-state';
     const audio = document.getElementById('mp-audio') as HTMLAudioElement;
@@ -88,7 +87,6 @@ const enabled = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_P
     const progress = document.getElementById('mp-progress') as HTMLInputElement;
     const title = document.getElementById('mp-title')!;
     const artist = document.getElementById('mp-artist')!;
-    const mood = document.getElementById('mp-mood')!;
     const compactTitle = document.getElementById('mp-title-compact')!;
     const compactArtist = document.getElementById('mp-artist-compact')!;
     const iconPlay = document.getElementById('mp-icon-play')!;
@@ -137,7 +135,6 @@ const enabled = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_P
       if (!track) return;
       title.textContent = track.name;
       artist.textContent = track.artist || 'Emilia selection';
-      mood.textContent = track.mood ?? '';
       compactTitle.textContent = track.name;
       compactArtist.textContent = track.artist || 'Emilia selection';
       if (track.cover) {

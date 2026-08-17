@@ -290,3 +290,18 @@ body::after {
   color: white;
   border-color: transparent;
 }
+
+/* ============ 主题切换扩散动效（View Transitions） ============ */
+/* 禁用默认的交叉淡入淡出，由 ThemeToggle 里的圆形 clip-path 动画接管 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* 旧主题固定在底层，新主题快照在上层从圆心扩散盖住它 */
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2147483646;
+}

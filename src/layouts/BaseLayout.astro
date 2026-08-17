@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import SpiritSparks from '../components/SpiritSparks.astro';
@@ -10,12 +11,15 @@ interface Props {
   description?: string;
   /** 沉浸式模式：导航透明悬浮、内容全宽（用于首页壁纸首屏） */
   immersive?: boolean;
+  /** 宽版内容：用于需要同时展示封面与歌单的工具页面 */
+  wide?: boolean;
 }
 
 const {
   title = 'justEMT · 爱蜜莉雅主题站',
   description = 'EMT —— 爱蜜莉雅碳真是天使。一座冰上的美术馆，献给银发半精灵。',
   immersive = false,
+  wide = false,
 } = Astro.props;
 ---
 
@@ -30,6 +34,7 @@ const {
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
     <title>{title}</title>
+    <ClientRouter />
 
     <!-- 衬线标题字体；国内网络加载失败时自动回落本地宋体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -62,7 +67,7 @@ const {
         <slot />
       </main>
     ) : (
-      <main class="mx-auto max-w-3xl px-4 pb-12 pt-24">
+      <main class:list={['mx-auto px-4 pb-12 pt-24', wide ? 'max-w-6xl' : 'max-w-3xl']}>
         <slot />
       </main>
     )}

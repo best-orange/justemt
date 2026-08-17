@@ -1,10 +1,8 @@
 ---
 /**
- * 悬浮音乐播放器。
- * - 曲目来自 /api/music（服务端代理 ChKSz，apikey 不下发）
- * - 播放地址按需获取：点到哪首取哪首，省上游配额
- * - 不自动播放：浏览器普遍拦截带声音的自动播放，且不打扰访客
- * - 未配置 MUSIC_API_KEY 时整个组件不渲染
+ * 全站音乐控制器。
+ * 曲目和播放地址始终经由 /api/music 获取，MUSIC_API_KEY 只在服务端使用。
+ * transition:persist 让同一个 audio 节点在 Astro 页面切换时继续存在。
  */
 const enabled = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_PLAYLIST_ID);
 ---
@@ -12,50 +10,61 @@ const enabled = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_P
 {enabled && (
   <div
     id="music-player"
-    class="fixed bottom-4 left-4 z-[60] flex items-center gap-2 rounded-full border border-lilac-400/30 bg-white/80 p-1.5 shadow-lg backdrop-blur transition-all duration-300 dark:bg-night-900/80"
+    transition:persist="music-player"
+    class="music-player glass fixed bottom-4 right-4 z-[60]"
     data-collapsed="true"
   >
-    <!-- 封面 / 展开开关 -->
-    <button
-      id="mp-toggle"
-      type="button"
-      aria-label="展开音乐播放器"
-      aria-expanded="false"
-      class="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-lilac-400/20"
-    >
-      <img id="mp-cover" src="" alt="" class="h-full w-full object-cover opacity-0 transition-opacity" />
-      <svg id="mp-note" class="absolute inset-0 m-auto h-4 w-4 text-lilac-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163V4.882a1.5 1.5 0 0 0-1.867-1.455l-9 2.572A1.5 1.5 0 0 0 7.5 7.454v10.099a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 7.5 13.803Z" />
-      </svg>
-    </button>
+    <div class="music-player__bar flex items-center gap-2 p-1.5">
+      <button
+        id="mp-toggle"
+        type="button"
+        aria-label="展开音乐播放器"
+        aria-expanded="false"
+        aria-controls="mp-panel"
+        class="music-player__cover relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-lilac-400/20"
+      >
+        <img id="mp-cover" src="" alt="" class="h-full w-full object-cover opacity-0 transition-opacity" />
+        <svg id="mp-note" class="absolute inset-0 m-auto h-4 w-4 text-lilac-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 17.5 10.19V4.882a1.5 1.5 0 0 0-1.867-1.455l-9 2.572A1.5 1.5 0 0 0 5.5 7.454v10.099a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 5.5 13.803Z" />
+        </svg>
+      </button>
 
-    <!-- 展开区：曲名 + 控制 -->
-    <div id="mp-panel" class="hidden items-center gap-1 pr-1">
-      <div class="min-w-0 max-w-[9rem] px-1">
-        <p id="mp-title" class="truncate text-xs font-medium text-slate-700 dark:text-slate-200">载入中…</p>
-        <p id="mp-artist" class="truncate text-[0.68rem] text-slate-500 dark:text-slate-400"></p>
+      <button id="mp-compact" type="button" class="music-player__compact min-w-0 flex-1 text-left" aria-label="展开当前歌曲信息">
+        <span id="mp-title-compact" class="block truncate text-xs font-semibold text-slate-700 dark:text-slate-100">正在打开音乐室…</span>
+        <span id="mp-artist-compact" class="mt-0.5 block truncate text-[0.68rem] text-slate-500 dark:text-slate-400"></span>
+      </button>
+
+      <button id="mp-play-compact" type="button" aria-label="播放" class="music-control rounded-full p-2 text-violet-700 transition-colors hover:bg-lilac-400/15 dark:text-lilac-300">
+        <svg id="mp-icon-play-compact" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 0 1 0 1.971l-11.54 6.347a1.125 1.125 0 0 1-1.667-.985V5.653Z" /></svg>
+        <svg id="mp-icon-pause-compact" class="hidden h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
+      </button>
+    </div>
+
+    <div id="mp-panel" class="music-player__panel hidden border-t border-lilac-400/15 px-4 pb-4 pt-3">
+      <div class="flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <p id="mp-title" class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">正在打开音乐室…</p>
+          <p id="mp-artist" class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400"></p>
+        </div>
+        <span id="mp-mood" class="shrink-0 text-[0.65rem] tracking-widest text-lilac-500 dark:text-lilac-300"></span>
       </div>
-
-      <button id="mp-prev" type="button" aria-label="上一首" class="rounded-full p-1.5 text-slate-500 transition-colors hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 16.811V7.19a.75.75 0 0 0-1.125-.65l-8.25 4.81a.75.75 0 0 0 0 1.3l8.25 4.81A.75.75 0 0 0 21 16.81ZM9.75 16.811V7.19a.75.75 0 0 0-1.125-.65l-8.25 4.81a.75.75 0 0 0 0 1.3l8.25 4.81a.75.75 0 0 0 1.125-.65Z" />
-        </svg>
-      </button>
-
-      <button id="mp-play" type="button" aria-label="播放" class="rounded-full p-1.5 text-violet-700 transition-colors hover:text-violet-900 dark:text-lilac-300 dark:hover:text-lilac-200">
-        <svg id="mp-icon-play" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 0 1 0 1.971l-11.54 6.347a1.125 1.125 0 0 1-1.667-.985V5.653Z" />
-        </svg>
-        <svg id="mp-icon-pause" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
-        </svg>
-      </button>
-
-      <button id="mp-next" type="button" aria-label="下一首" class="rounded-full p-1.5 text-slate-500 transition-colors hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.811V7.19a.75.75 0 0 1 1.125-.65l8.25 4.81a.75.75 0 0 1 0 1.3l-8.25 4.81A.75.75 0 0 1 3 16.81ZM14.25 16.811V7.19a.75.75 0 0 1 1.125-.65l8.25 4.81a.75.75 0 0 1 0 1.3l-8.25 4.81a.75.75 0 0 1-1.125-.65Z" />
-        </svg>
-      </button>
+      <input id="mp-progress" class="music-progress mt-4 w-full" type="range" min="0" max="0" step="1" value="0" aria-label="播放进度" />
+      <div class="mt-1 flex justify-between text-[0.65rem] tabular-nums text-slate-400" aria-hidden="true"><span id="mp-current">0:00</span><span id="mp-duration">0:00</span></div>
+      <div class="mt-3 flex items-center justify-center gap-2">
+        <button id="mp-repeat" type="button" aria-label="循环关闭" aria-pressed="false" class="music-control rounded-full p-2 text-slate-500 transition-colors hover:bg-lilac-400/15 dark:text-slate-400">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17 2.75 20.25 6 17 9.25M4 12V9.5A3.5 3.5 0 0 1 7.5 6h12.75M7 21.25 3.75 18 7 14.75M20 12v2.5a3.5 3.5 0 0 1-3.5 3.5H3.75" /></svg>
+        </button>
+        <button id="mp-prev" type="button" aria-label="上一首" class="music-control rounded-full p-2 text-slate-500 transition-colors hover:bg-lilac-400/15 dark:text-slate-400">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 6.75v10.5L10.5 12l9-5.25ZM4.5 6.75v10.5" /></svg>
+        </button>
+        <button id="mp-play" type="button" aria-label="播放" class="music-control rounded-full bg-violet-700 p-3 text-white shadow-sm transition-colors hover:bg-violet-800 dark:bg-lilac-400 dark:text-night-950 dark:hover:bg-lilac-300">
+          <svg id="mp-icon-play" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 0 1 0 1.971l-11.54 6.347a1.125 1.125 0 0 1-1.667-.985V5.653Z" /></svg>
+          <svg id="mp-icon-pause" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
+        </button>
+        <button id="mp-next" type="button" aria-label="下一首" class="music-control rounded-full p-2 text-slate-500 transition-colors hover:bg-lilac-400/15 dark:text-slate-400">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 6.75 9 5.25-9 5.25V6.75ZM19.5 6.75v10.5" /></svg>
+        </button>
+      </div>
     </div>
 
     <audio id="mp-audio" preload="none"></audio>
@@ -65,127 +74,195 @@ const enabled = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.MUSIC_P
 <script>
   const root = document.getElementById('music-player');
 
-  if (root) {
-    type Track = { id: string; name: string; artist: string; cover: string };
-
+  if (root && !root.dataset.initialized) {
+    root.dataset.initialized = 'true';
+    type Track = { id: string; name: string; artist: string; cover: string; mood?: string };
+    type State = { tracks: Track[]; index: number; playing: boolean; currentTime: number; duration: number; repeat: boolean };
+    const storageKey = 'justemt-music-state';
     const audio = document.getElementById('mp-audio') as HTMLAudioElement;
     const panel = document.getElementById('mp-panel')!;
     const toggle = document.getElementById('mp-toggle')!;
+    const compact = document.getElementById('mp-compact')!;
     const cover = document.getElementById('mp-cover') as HTMLImageElement;
     const note = document.getElementById('mp-note')!;
+    const progress = document.getElementById('mp-progress') as HTMLInputElement;
     const title = document.getElementById('mp-title')!;
     const artist = document.getElementById('mp-artist')!;
+    const mood = document.getElementById('mp-mood')!;
+    const compactTitle = document.getElementById('mp-title-compact')!;
+    const compactArtist = document.getElementById('mp-artist-compact')!;
     const iconPlay = document.getElementById('mp-icon-play')!;
     const iconPause = document.getElementById('mp-icon-pause')!;
-
+    const iconPlayCompact = document.getElementById('mp-icon-play-compact')!;
+    const iconPauseCompact = document.getElementById('mp-icon-pause-compact')!;
+    const current = document.getElementById('mp-current')!;
+    const duration = document.getElementById('mp-duration')!;
     let tracks: Track[] = [];
     let index = 0;
-    /** 已解析的播放地址缓存，避免同一首歌重复消耗上游配额 */
+    let repeat = false;
+    let userStarted = false;
+    let pendingTime = 0;
+    let loadingPromise: Promise<void> | null = null;
     const urlCache = new Map<string, string>();
 
+    const readSaved = () => {
+      try { return JSON.parse(localStorage.getItem(storageKey) ?? '{}') as { id?: string; time?: number; repeat?: boolean }; } catch { return {}; }
+    };
+    const save = () => {
+      try { localStorage.setItem(storageKey, JSON.stringify({ id: tracks[index]?.id, time: audio.currentTime || 0, repeat })); } catch { /* storage may be unavailable */ }
+    };
+    const clock = (value: number) => {
+      if (!Number.isFinite(value)) return '0:00';
+      const minutes = Math.floor(value / 60);
+      return `${minutes}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
+    };
+    const state = (): State => ({ tracks, index, playing: !audio.paused, currentTime: audio.currentTime || 0, duration: audio.duration || 0, repeat });
+    const announce = () => window.dispatchEvent(new CustomEvent('justemt:music:state', { detail: state() }));
     const setExpanded = (open: boolean) => {
       panel.classList.toggle('hidden', !open);
-      panel.classList.toggle('flex', open);
       root.dataset.collapsed = String(!open);
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? '收起音乐播放器' : '展开音乐播放器');
     };
-
     const setPlayingIcon = (playing: boolean) => {
       iconPlay.classList.toggle('hidden', playing);
       iconPause.classList.toggle('hidden', !playing);
-      document.getElementById('mp-play')!.setAttribute('aria-label', playing ? '暂停' : '播放');
+      iconPlayCompact.classList.toggle('hidden', playing);
+      iconPauseCompact.classList.toggle('hidden', !playing);
+      document.getElementById('mp-play')?.setAttribute('aria-label', playing ? '暂停' : '播放');
+      document.getElementById('mp-play-compact')?.setAttribute('aria-label', playing ? '暂停' : '播放');
     };
-
-    function render() {
-      const t = tracks[index];
-      if (!t) return;
-      title.textContent = t.name;
-      artist.textContent = t.artist;
-      if (t.cover) {
-        cover.src = `${t.cover}?param=80y80`;
+    const render = () => {
+      const track = tracks[index];
+      if (!track) return;
+      title.textContent = track.name;
+      artist.textContent = track.artist || 'Emilia selection';
+      mood.textContent = track.mood ?? '';
+      compactTitle.textContent = track.name;
+      compactArtist.textContent = track.artist || 'Emilia selection';
+      if (track.cover) {
+        cover.src = `${track.cover}?param=120y120`;
+        cover.alt = `${track.name} 封面`;
         cover.classList.remove('opacity-0');
         note.classList.add('hidden');
       }
-    }
-
-    async function resolveUrl(t: Track): Promise<string | null> {
-      const hit = urlCache.get(t.id);
-      if (hit) return hit;
+      announce();
+    };
+    const resolveUrl = async (track: Track) => {
+      const cached = urlCache.get(track.id);
+      if (cached) return cached;
       try {
-        const res = await fetch(`/api/music?action=url&id=${encodeURIComponent(t.id)}`);
-        const body = await res.json();
-        if (!body.ok) return null;
-        urlCache.set(t.id, body.url);
+        const response = await fetch(`/api/music?action=url&id=${encodeURIComponent(track.id)}`);
+        const body = await response.json() as { ok?: boolean; url?: string };
+        if (!body.ok || !body.url) return null;
+        urlCache.set(track.id, body.url);
         return body.url;
-      } catch {
-        return null;
+      } catch { return null; }
+    };
+    const playCurrent = async () => {
+      if (!tracks[index]) return;
+      userStarted = true;
+      if (!audio.src) {
+        const source = await resolveUrl(tracks[index]);
+        if (!source) return;
+        audio.src = source;
+        if (pendingTime > 0) audio.addEventListener('loadedmetadata', () => { audio.currentTime = pendingTime; pendingTime = 0; }, { once: true });
       }
-    }
-
-    async function play(at = index) {
-      const t = tracks[at];
-      if (!t) return;
-      index = at;
-      render();
-
-      const src = await resolveUrl(t);
-      if (!src) {
-        // 单曲拿不到地址（下架/无版权）时跳过，而不是卡死在这首
-        title.textContent = `${t.name}（跳过）`;
-        if (tracks.length > 1) setTimeout(() => play((index + 1) % tracks.length), 800);
-        return;
-      }
-      audio.src = src;
-      try {
-        await audio.play();
-      } catch {
-        setPlayingIcon(false);
-      }
-    }
-
-    function step(dir: 1 | -1) {
+      try { await audio.play(); } catch { setPlayingIcon(false); }
+    };
+    const selectTrack = async (nextIndex: number, autoplay: boolean) => {
       if (!tracks.length) return;
-      play((index + dir + tracks.length) % tracks.length);
-    }
-
-    toggle.addEventListener('click', () => setExpanded(root.dataset.collapsed === 'true'));
-    document.getElementById('mp-prev')!.addEventListener('click', () => step(-1));
-    document.getElementById('mp-next')!.addEventListener('click', () => step(1));
-    document.getElementById('mp-play')!.addEventListener('click', () => {
-      if (audio.paused) {
-        audio.src ? audio.play().catch(() => setPlayingIcon(false)) : play();
-      } else {
-        audio.pause();
-      }
-    });
-
-    audio.addEventListener('play', () => setPlayingIcon(true));
-    audio.addEventListener('pause', () => setPlayingIcon(false));
-    audio.addEventListener('ended', () => step(1));
-    // 地址过期或网络问题时清掉缓存，下次重新解析
-    audio.addEventListener('error', () => {
-      const t = tracks[index];
-      if (t) urlCache.delete(t.id);
-      setPlayingIcon(false);
-    });
-
-    // 曲目列表在空闲时拉取，不和首屏渲染抢资源
+      index = (nextIndex + tracks.length) % tracks.length;
+      pendingTime = 0;
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      render();
+      save();
+      if (autoplay) await playCurrent();
+    };
+    const step = (direction: 1 | -1, autoplay = true) => selectTrack(index + direction, autoplay);
     const load = async () => {
-      try {
-        const res = await fetch('/api/music?action=playlist');
-        const body = await res.json();
-        if (!body.ok || !body.tracks?.length) {
-          root.remove();
-          return;
-        }
-        tracks = body.tracks;
-        render();
-      } catch {
-        root.remove();
-      }
+      if (loadingPromise) return loadingPromise;
+      loadingPromise = (async () => {
+        try {
+          const response = await fetch('/api/music?action=playlist');
+          const body = await response.json() as { ok?: boolean; tracks?: Track[] };
+          if (!body.ok || !body.tracks?.length) { root.remove(); return; }
+          tracks = body.tracks;
+          const saved = readSaved();
+          repeat = Boolean(saved.repeat);
+          const savedIndex = tracks.findIndex((track) => track.id === saved.id);
+          index = savedIndex >= 0 ? savedIndex : 0;
+          pendingTime = savedIndex >= 0 && Number.isFinite(saved.time) ? Math.max(0, saved.time ?? 0) : 0;
+          render();
+          document.getElementById('mp-repeat')?.setAttribute('aria-pressed', String(repeat));
+          document.getElementById('mp-repeat')?.setAttribute('aria-label', repeat ? '循环当前歌曲' : '循环关闭');
+          announce();
+        } catch { root.remove(); }
+      })();
+      return loadingPromise;
     };
 
-    'requestIdleCallback' in window ? requestIdleCallback(load) : setTimeout(load, 1200);
+    toggle.addEventListener('click', () => setExpanded(root.dataset.collapsed === 'true'));
+    compact.addEventListener('click', () => setExpanded(true));
+    document.getElementById('mp-prev')?.addEventListener('click', () => void step(-1));
+    document.getElementById('mp-next')?.addEventListener('click', () => void step(1));
+    document.getElementById('mp-play')?.addEventListener('click', () => audio.paused ? void playCurrent() : audio.pause());
+    document.getElementById('mp-play-compact')?.addEventListener('click', () => audio.paused ? void playCurrent() : audio.pause());
+    document.getElementById('mp-repeat')?.addEventListener('click', (event) => {
+      repeat = !repeat;
+      const button = event.currentTarget as HTMLButtonElement;
+      button.setAttribute('aria-pressed', String(repeat));
+      button.setAttribute('aria-label', repeat ? '循环当前歌曲' : '循环关闭');
+      button.classList.toggle('text-violet-700', repeat);
+      button.classList.toggle('dark:text-lilac-300', repeat);
+      save();
+      announce();
+    });
+    window.addEventListener('justemt:music:toggle', () => audio.paused ? void playCurrent() : audio.pause());
+    window.addEventListener('justemt:music:toggle-repeat', () => document.getElementById('mp-repeat')?.click());
+    window.addEventListener('justemt:music:step', (event) => {
+      const direction = (event as CustomEvent<{ direction?: 1 | -1 }>).detail?.direction;
+      if (direction === 1 || direction === -1) void step(direction);
+    });
+    window.addEventListener('justemt:music:seek', (event) => {
+      const value = Number((event as CustomEvent<{ value?: number }>).detail?.value);
+      if (Number.isFinite(value)) audio.currentTime = value;
+    });
+    progress.addEventListener('input', () => {
+      audio.currentTime = Number(progress.value);
+      current.textContent = clock(audio.currentTime);
+      save();
+      announce();
+    });
+    audio.addEventListener('play', () => { setPlayingIcon(true); announce(); });
+    audio.addEventListener('pause', () => { setPlayingIcon(false); save(); announce(); });
+    audio.addEventListener('timeupdate', () => {
+      progress.max = String(Number.isFinite(audio.duration) ? audio.duration : 0);
+      progress.value = String(audio.currentTime || 0);
+      current.textContent = clock(audio.currentTime);
+      duration.textContent = clock(audio.duration);
+      if (Math.floor(audio.currentTime) % 5 === 0) save();
+      announce();
+    });
+    audio.addEventListener('loadedmetadata', () => { duration.textContent = clock(audio.duration); progress.max = String(audio.duration || 0); announce(); });
+    audio.addEventListener('ended', () => void (repeat ? selectTrack(index, true) : step(1, userStarted)));
+    audio.addEventListener('error', () => {
+      const track = tracks[index];
+      if (track) urlCache.delete(track.id);
+      setPlayingIcon(false);
+      announce();
+    });
+    window.addEventListener('justemt:music:select', (event) => {
+      const detail = (event as CustomEvent<{ id?: string; index?: number; autoplay?: boolean }>).detail;
+      const target = detail.id ? tracks.findIndex((track) => track.id === detail.id) : (detail.index ?? 0);
+      if (target >= 0) void selectTrack(target, detail.autoplay !== false);
+    });
+    window.addEventListener('justemt:music:request-state', () => announce());
+    window.addEventListener('beforeunload', save);
+    setPlayingIcon(false);
+    setExpanded(false);
+    void load();
   }
 </script>

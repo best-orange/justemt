@@ -43,14 +43,17 @@
         return;
       }
 
-      // 以被点击按钮的中心为圆心（视口坐标，与 root 快照坐标系一致），
-      // 半径取到屏幕最远角的距离，保证覆盖全屏
+      // 以被点击按钮的中心为圆心。注意：root 快照在 devicePixelRatio > 1
+      // 的设备上可能按缩放采样，直接用 px 坐标会被 DPR 缩放导致圆心偏移；
+      // 改用相对快照盒的百分比坐标，任何缩放下都能对准按钮位置
       const rect = btn.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
+      const x = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+      const y = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+      const px = rect.left + rect.width / 2;
+      const py = rect.top + rect.height / 2;
       const radius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y),
+        Math.max(px, window.innerWidth - px),
+        Math.max(py, window.innerHeight - py),
       );
 
       const transition = document.startViewTransition(() => {
@@ -62,8 +65,8 @@
         document.documentElement.animate(
           {
             clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${radius}px at ${x}px ${y}px)`,
+              `circle(0px at ${x}% ${y}%)`,
+              `circle(${radius}px at ${x}% ${y}%)`,
             ],
           },
           {

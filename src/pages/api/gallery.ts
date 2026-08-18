@@ -105,10 +105,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (body.action === 'presign') {
       const fileName = typeof body.fileName === 'string' ? body.fileName : '';
       const contentType = typeof body.contentType === 'string' ? body.contentType : '';
+      const sha256 = typeof body.sha256 === 'string' ? body.sha256 : '';
       if (!fileName || !galleryLimits.allowedTypes.includes(contentType)) {
         return json({ ok: false, message: '不支持的图片格式' }, 400);
       }
-      return json({ ok: true, plan: await createGalleryUploadPlan(fileName, contentType) }, 200, 'no-store');
+      return json({ ok: true, plan: await createGalleryUploadPlan(fileName, contentType, sha256) }, 200, 'no-store');
     }
 
     if (body.action === 'commit') {
@@ -129,6 +130,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         width: Number(body.width),
         height: Number(body.height),
         size: Number(body.size),
+        sha256: typeof body.sha256 === 'string' ? body.sha256 : '',
       });
       return json({ ok: true, photo }, 201, 'no-store');
     }

@@ -18,6 +18,8 @@ export interface StoredGalleryPhoto {
   width: number;
   height: number;
   size?: number;
+  /** 原图内容的 SHA-256；旧 manifest 条目可能没有该字段。 */
+  sha256?: string;
   originalKey: string;
   previewKey: string;
   thumbnailKey: string;
@@ -119,6 +121,12 @@ function isMissingObject(error: unknown): boolean {
   return candidate?.name === 'NoSuchKey' || candidate?.$metadata?.httpStatusCode === 404;
 }
 
+function normalizeSha256(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(normalized)) throw new Error('图片指纹无效');
+  return normalized;
+}
+
 let manifestCache: { value: GalleryManifest; expiresAt: number } | null = null;
 
 /** 读取相册清单并在一次函数实例内短暂缓存，降低首页连续请求的 R2 读次数。 */
@@ -164,8 +172,12 @@ export async function writeGalleryManifest(photos: StoredGalleryPhoto[]): Promis
 }
 
 /** 根据原图文件名生成三个资源 key，并签发短时直传 URL。 */
-export async function createGalleryUploadPlan(fileName: string, contentType: string): Promise<UploadPlan> {
+export async function createGalleryUploadPlan(fileName: string, contentType: string, sha256: string): Promise<UploadPlan> {
   if (!ALLOWED_TYPES.has(contentType)) throw new Error('仅支持 JPG、PNG、WebP 或 AVIF 图片');
+  const normalizedSha256 = normalizeSha256(sha256);
+  const current = await readGalleryManifest(true);
+  const duplicate = current.photos.find((photo) => photo.sha256?.toLowerCase() === normalizedSha256);
+  if (duplicate) throw new Error(`图片已存在于远程馆藏：「${duplicate.title}」`);
   const id = randomUUID();
   const ext = extensionFor(contentType, fileName);
   const originalKey = `gallery/originals/${id}.${ext}`;
@@ -177,6 +189,7 @@ export async function createGalleryUploadPlan(fileName: string, contentType: str
       Bucket: bucket(),
       Key: key,
       ContentType: type,
+      ...(key === originalKey ? { Metadata: { sha256: normalizedSha256 } } : {}),
       CacheControl: 'public, max-age=31536000, immutable',
     }),
     { expiresIn: UPLOAD_TTL_SECONDS },
@@ -202,6 +215,7 @@ export async function commitGalleryPhoto(input: {
   width: number;
   height: number;
   size: number;
+  sha256: string;
 }): Promise<GalleryPhoto> {
   const idPattern = /^[0-9a-f-]{36}$/i;
   if (!idPattern.test(input.id)) throw new Error('图片标识无效');
@@ -209,6 +223,7 @@ export async function commitGalleryPhoto(input: {
     throw new Error('图片尺寸或文件大小无效');
   }
   if (input.size > MAX_UPLOAD_BYTES) throw new Error('单张图片不能超过 25 MB');
+  const normalizedSha256 = normalizeSha256(input.sha256);
   if (!input.originalKey.startsWith(`gallery/originals/${input.id}.`)
     || input.previewKey !== `gallery/previews/${input.id}.webp`
     || input.thumbnailKey !== `gallery/thumbnails/${input.id}.webp`) {
@@ -218,8 +233,19 @@ export async function commitGalleryPhoto(input: {
   const heads = await Promise.all(keys.map((Key) => r2Client().send(new HeadObjectCommand({ Bucket: bucket(), Key }))));
   const originalSize = Number(heads[0].ContentLength ?? 0);
   if (!originalSize || originalSize > MAX_UPLOAD_BYTES) throw new Error('原图不存在或超过 25 MB');
+  if (heads[0].Metadata?.sha256?.toLowerCase() !== normalizedSha256) {
+    throw new Error('图片内容校验失败，请重新选择后上传');
+  }
 
   const current = await readGalleryManifest(true);
+  const duplicate = current.photos.find((photo) => photo.sha256?.toLowerCase() === normalizedSha256);
+  if (duplicate) {
+    await r2Client().send(new DeleteObjectsCommand({
+      Bucket: bucket(),
+      Delete: { Objects: keys.map((Key) => ({ Key })) },
+    }));
+    throw new Error(`图片已存在于远程馆藏：「${duplicate.title}」`);
+  }
   if (current.photos.some((photo) => photo.id === input.id)) throw new Error('这张图片已经登记过了');
   const photo: StoredGalleryPhoto = {
     id: input.id,
@@ -230,6 +256,7 @@ export async function commitGalleryPhoto(input: {
     width: Math.round(input.width),
     height: Math.round(input.height),
     size: originalSize,
+    sha256: normalizedSha256,
     originalKey: input.originalKey,
     previewKey: input.previewKey,
     thumbnailKey: input.thumbnailKey,

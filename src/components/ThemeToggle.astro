@@ -20,63 +20,64 @@
 </button>
 
 <script>
-  // 组件在导航里渲染了两次（桌面端 / 移动端），脚本只会执行一次，
-  // 所以必须绑定全部实例，否则移动端那个按钮点了没反应。
-  document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const applyTheme = () => {
-        const isDark = document.documentElement.classList.toggle('dark');
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        // 同步移动端浏览器地址栏配色，与 BaseLayout 的初始化保持一致
-        document
-          .querySelector('meta[name="theme-color"]')
-          ?.setAttribute('content', isDark ? '#0a0f26' : '#f7f6fd');
-        return isDark;
-      };
+  // 主题按钮会在 Astro 客户端导航时被替换，委托到 document 可兼容新页面的按钮。
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const btn = event.target.closest<HTMLButtonElement>('[data-theme-toggle]');
+    if (!btn) return;
 
-      // 不支持 View Transitions 或用户偏好减弱动态效果时直接切换
-      if (
-        !document.startViewTransition ||
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ) {
-        applyTheme();
-        return;
-      }
+    const applyTheme = () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      // 同步移动端浏览器地址栏配色，与 BaseLayout 的初始化保持一致
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute('content', isDark ? '#0a0f26' : '#f7f6fd');
+      return isDark;
+    };
 
-      // 以被点击按钮的中心为圆心。注意：root 快照在 devicePixelRatio > 1
-      // 的设备上可能按缩放采样，直接用 px 坐标会被 DPR 缩放导致圆心偏移；
-      // 改用相对快照盒的百分比坐标，任何缩放下都能对准按钮位置
-      const rect = btn.getBoundingClientRect();
-      const x = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
-      const y = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
-      const px = rect.left + rect.width / 2;
-      const py = rect.top + rect.height / 2;
-      const radius = Math.hypot(
-        Math.max(px, window.innerWidth - px),
-        Math.max(py, window.innerHeight - py),
-      );
+    // 不支持 View Transitions 或用户偏好减弱动态效果时直接切换
+    if (
+      !document.startViewTransition ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      applyTheme();
+      return;
+    }
 
-      const transition = document.startViewTransition(() => {
-        applyTheme();
-      });
+    // 以被点击按钮的中心为圆心。注意：root 快照在 devicePixelRatio > 1
+    // 的设备上可能按缩放采样，直接用 px 坐标会被 DPR 缩放导致圆心偏移；
+    // 改用相对快照盒的百分比坐标，任何缩放下都能对准按钮位置
+    const rect = btn.getBoundingClientRect();
+    const x = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+    const y = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+    const px = rect.left + rect.width / 2;
+    const py = rect.top + rect.height / 2;
+    const radius = Math.hypot(
+      Math.max(px, window.innerWidth - px),
+      Math.max(py, window.innerHeight - py),
+    );
 
-      // ready 在过渡被跳过时（如快速连点）会 reject，吞掉避免报错
-      transition.ready.then(() => {
-        document.documentElement.animate(
-          {
-            clipPath: [
-              `circle(0px at ${x}% ${y}%)`,
-              `circle(${radius}px at ${x}% ${y}%)`,
-            ],
-          },
-          {
-            duration: 600,
-            easing: 'ease-in-out',
-            // 动画作用在新主题的快照上：新画面从圆心扩散盖住旧画面
-            pseudoElement: '::view-transition-new(root)',
-          },
-        );
-      }).catch(() => {});
+    const transition = document.startViewTransition(() => {
+      applyTheme();
     });
+
+    // ready 在过渡被跳过时（如快速连点）会 reject，吞掉避免报错
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}% ${y}%)`,
+            `circle(${radius}px at ${x}% ${y}%)`,
+          ],
+        },
+        {
+          duration: 600,
+          easing: 'ease-in-out',
+          // 动画作用在新主题的快照上：新画面从圆心扩散盖住旧画面
+          pseudoElement: '::view-transition-new(root)',
+        },
+      );
+    }).catch(() => {});
   });
 </script>

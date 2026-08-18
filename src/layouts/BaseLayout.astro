@@ -48,15 +48,24 @@ const {
     <meta name="theme-color" content="#0a0f26" />
     <script is:inline>
       (function () {
-        const stored = localStorage.getItem('theme');
-        const dark = stored === 'dark' || !stored;
-        if (dark) {
-          document.documentElement.classList.add('dark');
-        }
-        // 同步移动端浏览器地址栏配色
-        document
-          .querySelector('meta[name="theme-color"]')
-          ?.setAttribute('content', dark ? '#0a0f26' : '#f7f6fd');
+        const syncTheme = (targetDocument) => {
+          const stored = localStorage.getItem('theme');
+          const dark = stored === 'dark' || !stored;
+          targetDocument.documentElement.classList.toggle('dark', dark);
+          // 同步移动端浏览器地址栏配色
+          targetDocument
+            .querySelector('meta[name="theme-color"]')
+            ?.setAttribute('content', dark ? '#0a0f26' : '#f7f6fd');
+        };
+
+        syncTheme(document);
+
+        // Astro 客户端导航会用新页面的 <html> 属性覆盖当前根元素。
+        // 在替换前同步主题，避免新页面丢失 dark 类而重置为浅色。
+        document.addEventListener('astro:before-swap', (event) => {
+          const newDocument = Reflect.get(event, 'newDocument');
+          if (newDocument instanceof Document) syncTheme(newDocument);
+        });
       })();
     </script>
   </head>

@@ -3,7 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="画廊 · justEMT" description="冰晶与微光 —— 爱蜜莉雅主题画廊。">
-  <section class="reveal">
+  <section data-gallery-page class="reveal">
     <header>
       <div class="flex items-end justify-between gap-4">
         <div>
@@ -76,177 +76,205 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     source: 'r2' | 'local';
   };
 
-  const grid = document.getElementById('gallery-grid')!;
-  const filter = document.getElementById('tag-filter')!;
-  const sentinel = document.getElementById('gallery-sentinel')!;
-  const status = document.getElementById('gallery-status')!;
-  const lightbox = document.getElementById('lightbox')!;
-  const lbPreview = document.getElementById('lb-preview') as HTMLImageElement;
-  const lbImage = document.getElementById('lb-img') as HTMLImageElement;
-  const lbTitle = document.getElementById('lb-title')!;
-  const lbDesc = document.getElementById('lb-desc')!;
-  const lbCount = document.getElementById('lb-count')!;
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let activeGalleryPage: HTMLElement | undefined;
+  let cleanupGalleryPage: (() => void) | undefined;
 
-  let photos: GalleryPhoto[] = [];
-  let cursor: string | null = '0';
-  let activeTag = '*';
-  let loading = false;
-  let currentIndex = -1;
-  let touchX = 0;
-  let touchY = 0;
+  function initializeGalleryPage() {
+    const page = document.querySelector<HTMLElement>('[data-gallery-page]');
+    if (!page || page === activeGalleryPage) return;
 
-  function makeTag(label: string, active: boolean) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.dataset.tag = label;
-    button.textContent = label === '*' ? '全部' : label;
-    button.className = 'tag-chip rounded-full border border-lilac-400/30 px-4 py-1.5 text-sm text-slate-600 dark:text-slate-300';
-    if (active) button.classList.add('is-active');
-    button.addEventListener('click', () => {
-      if (activeTag === label) return;
-      activeTag = label;
-      filter.querySelectorAll('button').forEach((item) => item.classList.toggle('is-active', item === button));
-      photos = [];
-      cursor = '0';
-      grid.replaceChildren();
-      void loadPage(true);
-    });
-    return button;
-  }
+    cleanupGalleryPage?.();
+    const galleryPage = page;
+    activeGalleryPage = galleryPage;
 
-  function renderTags(tags: string[]) {
-    const previous = activeTag;
-    filter.replaceChildren(makeTag('*', previous === '*'));
-    tags.forEach((tag) => filter.append(makeTag(tag, tag === previous)));
-  }
+    const grid = galleryPage.querySelector<HTMLElement>('#gallery-grid')!;
+    const filter = galleryPage.querySelector<HTMLElement>('#tag-filter')!;
+    const sentinel = galleryPage.querySelector<HTMLElement>('#gallery-sentinel')!;
+    const status = galleryPage.querySelector<HTMLElement>('#gallery-status')!;
+    const lightbox = document.getElementById('lightbox')!;
+    const lbPreview = document.getElementById('lb-preview') as HTMLImageElement;
+    const lbImage = document.getElementById('lb-img') as HTMLImageElement;
+    const lbTitle = document.getElementById('lb-title')!;
+    const lbDesc = document.getElementById('lb-desc')!;
+    const lbCount = document.getElementById('lb-count')!;
 
-  function renderCard(photo: GalleryPhoto, index: number) {
-    const figure = document.createElement('figure');
-    figure.className = 'gallery-item group relative mb-4 cursor-zoom-in overflow-hidden rounded-2xl bg-slate-200/60 dark:bg-night-900/70';
-    figure.dataset.index = String(index);
-    figure.style.breakInside = 'avoid';
+    const controller = new AbortController();
+    const { signal } = controller;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let photos: GalleryPhoto[] = [];
+    let cursor: string | null = '0';
+    let activeTag = '*';
+    let loading = false;
+    let currentIndex = -1;
+    let touchX = 0;
+    let touchY = 0;
 
-    const img = document.createElement('img');
-    img.src = photo.thumbnail || photo.preview || photo.image;
-    img.alt = photo.title;
-    img.loading = index < 6 ? 'eager' : 'lazy';
-    img.decoding = 'async';
-    if (photo.width > 0 && photo.height > 0) {
-      img.width = photo.width;
-      img.height = photo.height;
+    function makeTag(label: string, active: boolean) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.tag = label;
+      button.textContent = label === '*' ? '全部' : label;
+      button.className = 'tag-chip rounded-full border border-lilac-400/30 px-4 py-1.5 text-sm text-slate-600 dark:text-slate-300';
+      if (active) button.classList.add('is-active');
+      button.addEventListener('click', () => {
+        if (activeTag === label) return;
+        activeTag = label;
+        filter.querySelectorAll('button').forEach((item) => item.classList.toggle('is-active', item === button));
+        photos = [];
+        cursor = '0';
+        grid.replaceChildren();
+        void loadPage(true);
+      }, { signal });
+      return button;
     }
-    img.className = 'block h-auto w-full';
-    img.addEventListener('error', () => {
-      if (img.src !== photo.image) img.src = photo.image;
-    }, { once: true });
 
-    const caption = document.createElement('figcaption');
-    caption.className = 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 opacity-0 transition-opacity duration-300 group-hover:opacity-100';
-    const title = document.createElement('p');
-    title.className = 'font-display text-sm font-bold text-white';
-    title.textContent = photo.title;
-    const description = document.createElement('p');
-    description.className = 'mt-0.5 text-xs text-white/75';
-    description.textContent = photo.description ?? photo.date;
-    caption.append(title, description);
-    figure.append(img, caption);
-    figure.addEventListener('click', () => openAt(index));
-    return figure;
-  }
-
-  function appendPhotos(items: GalleryPhoto[]) {
-    const start = photos.length;
-    photos.push(...items);
-    items.forEach((photo, offset) => grid.append(renderCard(photo, start + offset)));
-  }
-
-  async function loadPage(reset = false) {
-    if (loading || (!reset && !cursor)) return;
-    loading = true;
-    status.textContent = photos.length ? '正在展开更多馆藏…' : '正在打开画册…';
-    try {
-      const query = new URLSearchParams({ limit: '24', tag: activeTag, cursor: reset ? '0' : cursor ?? '0' });
-      const response = await fetch(`/api/gallery?${query}`);
-      const body = await response.json() as { ok?: boolean; items?: GalleryPhoto[]; nextCursor?: string | null; tags?: string[]; total?: number; message?: string };
-      if (!response.ok || !body.ok) throw new Error(body.message ?? '加载失败');
-      if (reset) grid.replaceChildren();
-      appendPhotos(body.items ?? []);
-      cursor = body.nextCursor ?? null;
-      renderTags(body.tags ?? []);
-      status.textContent = cursor ? '继续下滑，发现更多微光' : (photos.length ? `共 ${body.total ?? photos.length} 件馆藏` : '画册还没有作品');
-      document.querySelector('section.reveal')?.classList.add('is-visible');
-    } catch {
-      status.textContent = photos.length ? '网络有些冷，稍后可继续下滑重试' : '画廊暂时无法打开';
-    } finally {
-      loading = false;
+    function renderTags(tags: string[]) {
+      const previous = activeTag;
+      filter.replaceChildren(makeTag('*', previous === '*'));
+      tags.forEach((tag) => filter.append(makeTag(tag, tag === previous)));
     }
-  }
 
-  function openAt(index: number) {
-    const photo = photos[index];
-    if (!photo) return;
-    currentIndex = index;
-    lbTitle.textContent = photo.title;
-    lbDesc.textContent = photo.description ?? photo.date;
-    lbCount.textContent = `${index + 1} / ${photos.length}`;
-    lbPreview.src = photo.thumbnail || photo.preview || photo.image;
-    lbImage.src = photo.image;
-    lbImage.alt = photo.title;
-    lbImage.classList.add('opacity-0');
-    lbImage.onload = () => lbImage.classList.remove('opacity-0');
-    lightbox.classList.remove('hidden');
-    lightbox.classList.add('flex', 'is-open');
-    lightbox.style.pointerEvents = 'auto';
-    document.body.style.overflow = 'hidden';
-  }
+    function renderCard(photo: GalleryPhoto, index: number) {
+      const figure = document.createElement('figure');
+      figure.className = 'gallery-item group relative mb-4 cursor-zoom-in overflow-hidden rounded-2xl bg-slate-200/60 dark:bg-night-900/70';
+      figure.dataset.index = String(index);
+      figure.style.breakInside = 'avoid';
 
-  function close() {
-    lightbox.classList.add('hidden');
-    lightbox.classList.remove('flex', 'is-open');
-    lightbox.style.pointerEvents = 'none';
-    document.body.style.overflow = '';
-    lbImage.src = '';
-    lbPreview.src = '';
-  }
+      const img = document.createElement('img');
+      img.src = photo.thumbnail || photo.preview || photo.image;
+      img.alt = photo.title;
+      img.loading = index < 6 ? 'eager' : 'lazy';
+      img.decoding = 'async';
+      if (photo.width > 0 && photo.height > 0) {
+        img.width = photo.width;
+        img.height = photo.height;
+      }
+      img.className = 'block h-auto w-full';
+      img.addEventListener('error', () => {
+        if (img.src !== photo.image) img.src = photo.image;
+      }, { once: true });
 
-  async function step(dir: 1 | -1) {
-    const next = currentIndex + dir;
-    if (next < 0) return openAt(photos.length - 1);
-    if (next >= photos.length) {
-      if (!cursor) return openAt(0);
-      await loadPage();
+      const caption = document.createElement('figcaption');
+      caption.className = 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 opacity-0 transition-opacity duration-300 group-hover:opacity-100';
+      const title = document.createElement('p');
+      title.className = 'font-display text-sm font-bold text-white';
+      title.textContent = photo.title;
+      const description = document.createElement('p');
+      description.className = 'mt-0.5 text-xs text-white/75';
+      description.textContent = photo.description ?? photo.date;
+      caption.append(title, description);
+      figure.append(img, caption);
+      figure.addEventListener('click', () => openAt(index), { signal });
+      return figure;
     }
-    if (photos.length) openAt((currentIndex + dir + photos.length) % photos.length);
+
+    function appendPhotos(items: GalleryPhoto[]) {
+      const start = photos.length;
+      photos.push(...items);
+      items.forEach((photo, offset) => grid.append(renderCard(photo, start + offset)));
+    }
+
+    async function loadPage(reset = false) {
+      if (loading || (!reset && !cursor)) return;
+      loading = true;
+      status.textContent = photos.length ? '正在展开更多馆藏…' : '正在打开画册…';
+      try {
+        const query = new URLSearchParams({ limit: '24', tag: activeTag, cursor: reset ? '0' : cursor ?? '0' });
+        const response = await fetch(`/api/gallery?${query}`, { signal });
+        const body = await response.json() as { ok?: boolean; items?: GalleryPhoto[]; nextCursor?: string | null; tags?: string[]; total?: number; message?: string };
+        if (signal.aborted) return;
+        if (!response.ok || !body.ok) throw new Error(body.message ?? '加载失败');
+        if (reset) grid.replaceChildren();
+        appendPhotos(body.items ?? []);
+        cursor = body.nextCursor ?? null;
+        renderTags(body.tags ?? []);
+        status.textContent = cursor ? '继续下滑，发现更多微光' : (photos.length ? `共 ${body.total ?? photos.length} 件馆藏` : '画册还没有作品');
+        galleryPage.classList.add('is-visible');
+      } catch {
+        if (!signal.aborted) {
+          status.textContent = photos.length ? '网络有些冷，稍后可继续下滑重试' : '画廊暂时无法打开';
+        }
+      } finally {
+        loading = false;
+      }
+    }
+
+    function openAt(index: number) {
+      const photo = photos[index];
+      if (!photo) return;
+      currentIndex = index;
+      lbTitle.textContent = photo.title;
+      lbDesc.textContent = photo.description ?? photo.date;
+      lbCount.textContent = `${index + 1} / ${photos.length}`;
+      lbPreview.src = photo.thumbnail || photo.preview || photo.image;
+      lbImage.src = photo.image;
+      lbImage.alt = photo.title;
+      lbImage.classList.add('opacity-0');
+      lbImage.onload = () => lbImage.classList.remove('opacity-0');
+      lightbox.classList.remove('hidden');
+      lightbox.classList.add('flex', 'is-open');
+      lightbox.style.pointerEvents = 'auto';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+      lightbox.classList.add('hidden');
+      lightbox.classList.remove('flex', 'is-open');
+      lightbox.style.pointerEvents = 'none';
+      document.body.style.overflow = '';
+      lbImage.src = '';
+      lbPreview.src = '';
+    }
+
+    async function step(dir: 1 | -1) {
+      const next = currentIndex + dir;
+      if (next < 0) return openAt(photos.length - 1);
+      if (next >= photos.length) {
+        if (!cursor) return openAt(0);
+        await loadPage();
+      }
+      if (photos.length) openAt((currentIndex + dir + photos.length) % photos.length);
+    }
+
+    document.getElementById('lb-close')?.addEventListener('click', close, { signal });
+    document.getElementById('lb-prev')?.addEventListener('click', () => void step(-1), { signal });
+    document.getElementById('lb-next')?.addEventListener('click', () => void step(1), { signal });
+    lightbox.addEventListener('click', (event) => { if (event.target === lightbox) close(); }, { signal });
+    document.addEventListener('keydown', (event) => {
+      if (lightbox.classList.contains('hidden')) return;
+      if (event.key === 'Escape') close();
+      if (event.key === 'ArrowLeft') void step(-1);
+      if (event.key === 'ArrowRight') void step(1);
+    }, { signal });
+    lightbox.addEventListener('touchstart', (event) => {
+      const touch = event.changedTouches[0];
+      touchX = touch.clientX;
+      touchY = touch.clientY;
+    }, { passive: true, signal });
+    lightbox.addEventListener('touchend', (event) => {
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - touchX;
+      const dy = touch.clientY - touchY;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) void step(dx < 0 ? 1 : -1);
+    }, { passive: true, signal });
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) void loadPage();
+    }, { rootMargin: '900px 0px' });
+    observer.observe(sentinel);
+    void loadPage(true);
+
+    if (reduceMotion) document.documentElement.dataset.reducedMotion = 'true';
+
+    cleanupGalleryPage = () => {
+      controller.abort();
+      observer.disconnect();
+      document.body.style.overflow = '';
+      if (activeGalleryPage === galleryPage) activeGalleryPage = undefined;
+    };
+    document.addEventListener('astro:before-swap', cleanupGalleryPage, { once: true });
   }
 
-  document.getElementById('lb-close')!.addEventListener('click', close);
-  document.getElementById('lb-prev')!.addEventListener('click', () => void step(-1));
-  document.getElementById('lb-next')!.addEventListener('click', () => void step(1));
-  lightbox.addEventListener('click', (event) => { if (event.target === lightbox) close(); });
-  document.addEventListener('keydown', (event) => {
-    if (lightbox.classList.contains('hidden')) return;
-    if (event.key === 'Escape') close();
-    if (event.key === 'ArrowLeft') void step(-1);
-    if (event.key === 'ArrowRight') void step(1);
-  });
-  lightbox.addEventListener('touchstart', (event) => {
-    const touch = event.changedTouches[0];
-    touchX = touch.clientX;
-    touchY = touch.clientY;
-  }, { passive: true });
-  lightbox.addEventListener('touchend', (event) => {
-    const touch = event.changedTouches[0];
-    const dx = touch.clientX - touchX;
-    const dy = touch.clientY - touchY;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) void step(dx < 0 ? 1 : -1);
-  }, { passive: true });
-
-  const observer = new IntersectionObserver((entries) => {
-    if (entries.some((entry) => entry.isIntersecting)) void loadPage();
-  }, { rootMargin: '900px 0px' });
-  observer.observe(sentinel);
-  void loadPage(true);
-
-  if (reduceMotion) document.documentElement.dataset.reducedMotion = 'true';
+  initializeGalleryPage();
+  document.addEventListener('astro:page-load', initializeGalleryPage);
 </script>

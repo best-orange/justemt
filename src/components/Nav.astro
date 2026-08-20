@@ -71,6 +71,7 @@ const isActive = (href: string) =>
       <ThemeToggle />
       <button
         id="menu-btn"
+        data-menu-toggle
         type="button"
         aria-label="打开菜单"
         aria-expanded="false"
@@ -115,33 +116,38 @@ const isActive = (href: string) =>
   </div>
 </header>
 
-<script is:inline>
-  (function () {
+<script>
+  // 菜单节点会在 Astro 客户端导航后被替换，委托到 document 可兼容新页面。
+  const setMenuOpen = (open: boolean) => {
     const btn = document.getElementById('menu-btn');
     const panel = document.getElementById('mobile-menu');
-    const iconOpen = document.getElementById('menu-icon-open');
-    const iconClose = document.getElementById('menu-icon-close');
     if (!btn || !panel) return;
 
-    const setOpen = (open) => {
-      panel.classList.toggle('hidden', !open);
-      iconOpen?.classList.toggle('hidden', open);
-      iconClose?.classList.toggle('hidden', !open);
-      btn.setAttribute('aria-expanded', String(open));
-    };
+    btn.querySelector('#menu-icon-open')?.classList.toggle('hidden', open);
+    btn.querySelector('#menu-icon-close')?.classList.toggle('hidden', !open);
+    panel.classList.toggle('hidden', !open);
+    btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? '关闭菜单' : '打开菜单');
+  };
 
-    btn.addEventListener('click', () =>
-      setOpen(panel.classList.contains('hidden'))
-    );
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+
+    const menuButton = event.target.closest<HTMLButtonElement>('[data-menu-toggle]');
+    if (menuButton) {
+      const panel = document.getElementById(menuButton.getAttribute('aria-controls') ?? '');
+      if (panel) setMenuOpen(panel.classList.contains('hidden'));
+      return;
+    }
+
     // 点击链接后收起
-    panel.querySelectorAll('a').forEach((a) =>
-      a.addEventListener('click', () => setOpen(false))
-    );
-    // 窗口拉宽到桌面尺寸时收起，避免状态残留
-    window.addEventListener('resize', () => {
-      if (window.innerWidth >= 640) setOpen(false);
-    });
-  })();
+    if (event.target.closest('#mobile-menu a')) setMenuOpen(false);
+  });
+
+  // 窗口拉宽到桌面尺寸时收起，避免状态残留
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 640) setMenuOpen(false);
+  });
 </script>
 
 {immersive && (

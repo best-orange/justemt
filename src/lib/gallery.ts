@@ -6,7 +6,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 /** R2 中保存的相册条目；manifest 本身不暴露访问凭据。 */
 export interface StoredGalleryPhoto {
@@ -171,6 +171,13 @@ export async function writeGalleryManifest(photos: StoredGalleryPhoto[]): Promis
   manifestCache = { value: manifest, expiresAt: Date.now() + 30_000 };
 }
 
+async function deleteGalleryObjects(keys: string[]): Promise<void> {
+  await r2Client().send(new DeleteObjectsCommand({
+    Bucket: bucket(),
+    Delete: { Objects: keys.map((Key) => ({ Key })) },
+  }));
+}
+
 /** 根据原图文件名生成三个资源 key，并签发短时直传 URL。 */
 export async function createGalleryUploadPlan(fileName: string, contentType: string, sha256: string): Promise<UploadPlan> {
   if (!ALLOWED_TYPES.has(contentType)) throw new Error('仅支持 JPG、PNG、WebP 或 AVIF 图片');
@@ -189,7 +196,6 @@ export async function createGalleryUploadPlan(fileName: string, contentType: str
       Bucket: bucket(),
       Key: key,
       ContentType: type,
-      ...(key === originalKey ? { Metadata: { sha256: normalizedSha256 } } : {}),
       CacheControl: 'public, max-age=31536000, immutable',
     }),
     { expiresIn: UPLOAD_TTL_SECONDS },
@@ -202,7 +208,16 @@ export async function createGalleryUploadPlan(fileName: string, contentType: str
   return { id, originalKey, previewKey, thumbnailKey, originalUrl, previewUrl, thumbnailUrl };
 }
 
-/** 校验直传对象确实存在，并把客户端元数据写入相册清单。 */
+async function hashGalleryObject(key: string): Promise<string> {
+  const response = await r2Client().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+  if (!response.Body) throw new Error('原图不存在或无法读取');
+
+  const digest = createHash('sha256');
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) digest.update(chunk);
+  return digest.digest('hex');
+}
+
+/** 校验直传对象确实存在和完整，再把元数据写入相册清单。 */
 export async function commitGalleryPhoto(input: {
   id: string;
   originalKey: string;
@@ -233,17 +248,19 @@ export async function commitGalleryPhoto(input: {
   const heads = await Promise.all(keys.map((Key) => r2Client().send(new HeadObjectCommand({ Bucket: bucket(), Key }))));
   const originalSize = Number(heads[0].ContentLength ?? 0);
   if (!originalSize || originalSize > MAX_UPLOAD_BYTES) throw new Error('原图不存在或超过 25 MB');
-  if (heads[0].Metadata?.sha256?.toLowerCase() !== normalizedSha256) {
+  if (originalSize !== input.size) {
+    await deleteGalleryObjects(keys);
+    throw new Error('图片大小校验失败，请重新选择后上传');
+  }
+  if (await hashGalleryObject(input.originalKey) !== normalizedSha256) {
+    await deleteGalleryObjects(keys);
     throw new Error('图片内容校验失败，请重新选择后上传');
   }
 
   const current = await readGalleryManifest(true);
   const duplicate = current.photos.find((photo) => photo.sha256?.toLowerCase() === normalizedSha256);
   if (duplicate) {
-    await r2Client().send(new DeleteObjectsCommand({
-      Bucket: bucket(),
-      Delete: { Objects: keys.map((Key) => ({ Key })) },
-    }));
+    await deleteGalleryObjects(keys);
     throw new Error(`图片已存在于远程馆藏：「${duplicate.title}」`);
   }
   if (current.photos.some((photo) => photo.id === input.id)) throw new Error('这张图片已经登记过了');
@@ -272,10 +289,7 @@ export async function deleteGalleryPhoto(id: string): Promise<boolean> {
   const photo = current.photos.find((item) => item.id === id);
   if (!photo) return false;
   await writeGalleryManifest(current.photos.filter((item) => item.id !== id));
-  await r2Client().send(new DeleteObjectsCommand({
-    Bucket: bucket(),
-    Delete: { Objects: [photo.originalKey, photo.previewKey, photo.thumbnailKey].map((Key) => ({ Key })) },
-  }));
+  await deleteGalleryObjects([photo.originalKey, photo.previewKey, photo.thumbnailKey]);
   return true;
 }
 

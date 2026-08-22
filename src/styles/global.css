@@ -47,6 +47,22 @@ body {
     radial-gradient(ellipse 60% 40% at 85% 10%, rgba(142, 205, 247, 0.10), transparent);
 }
 
+/* 固定壁纸提供全站底色，避免 body 的实色背景盖住壁纸。 */
+body.site-shell {
+  background-color: transparent;
+  background-image: none;
+}
+
+body.site-shell > .site-main,
+body.site-shell > footer {
+  position: relative;
+  z-index: 1;
+}
+
+body.site-shell:has(#lightbox.is-open) > .site-main {
+  z-index: 80;
+}
+
 /* 全局细腻噪点，模拟雪粒胶片感 */
 body::after {
   content: "";
@@ -62,18 +78,161 @@ body::after {
   background: rgba(183, 157, 250, 0.35);
 }
 
+.site-footer {
+  padding-inline: 1rem;
+}
+.site-footer__inner {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 1.75rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 54%, rgba(183, 157, 250, 0.12)),
+    rgba(247, 246, 253, 0.08);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  box-shadow:
+    0 14px 40px rgba(90, 70, 160, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+:where(.dark) .site-footer__inner {
+  border-color: rgba(205, 191, 254, 0.18);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.2), rgba(16, 23, 54, 0.18) 54%, rgba(142, 205, 247, 0.1)),
+    rgba(10, 15, 38, 0.16);
+  box-shadow:
+    0 16px 46px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+}
+
 /* ================= 玻璃拟态 ================= */
+:root {
+  /* 首页轮播歌词卡片作为全站大面板的透明度基准。 */
+  --liquid-surface-background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06) 52%, rgba(183, 157, 250, 0.12)),
+    rgba(247, 246, 253, 0.06);
+  --liquid-surface-background-dark:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.14), rgba(16, 23, 54, 0.08) 52%, rgba(142, 205, 247, 0.1)),
+    rgba(10, 15, 38, 0.1);
+}
+
 .glass {
-  background: color-mix(in srgb, white 60%, transparent);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-  border: 1px solid rgba(183, 157, 250, 0.25);
-  box-shadow: 0 8px 32px rgba(90, 70, 160, 0.08);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 56%, rgba(183, 157, 250, 0.1)),
+    rgba(247, 246, 253, 0.08);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  border: 1px solid rgba(183, 157, 250, 0.24);
+  box-shadow:
+    0 8px 32px rgba(90, 70, 160, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 :where(.dark) .glass {
-  background: color-mix(in srgb, var(--color-night-900) 55%, transparent);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.16), rgba(16, 23, 54, 0.1) 56%, rgba(142, 205, 247, 0.08)),
+    rgba(10, 15, 38, 0.14);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border-color: rgba(205, 191, 254, 0.14);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* 台词卡片的轻量液态玻璃：透出壁纸，同时保留一层流动高光。 */
+.glass--liquid {
+  isolation: isolate;
+  border-color: rgba(255, 255, 255, 0.34);
+  background: var(--liquid-surface-background);
+  backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
+  box-shadow:
+    0 14px 42px rgba(90, 70, 160, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+.glass--liquid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(255, 255, 255, 0.34), transparent 58%),
+    linear-gradient(112deg, transparent 34%, rgba(255, 255, 255, 0.1) 50%, transparent 68%);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+}
+.glass--liquid > * {
+  position: relative;
+  z-index: 1;
+}
+:where(.dark) .glass--liquid {
+  border-color: rgba(205, 191, 254, 0.2);
+  background: var(--liquid-surface-background-dark);
+  backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
+  -webkit-backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+}
+:where(.dark) .glass--liquid::before {
+  background:
+    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(205, 191, 254, 0.24), transparent 58%),
+    linear-gradient(112deg, transparent 34%, rgba(142, 205, 247, 0.1) 50%, transparent 68%);
+  opacity: 0.72;
+}
+
+/* 普通页面的内容面板：让文字、表单和列表都落在统一的 iOS 风格玻璃里。 */
+.site-content-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 2rem;
+  padding: clamp(1.25rem, 3.5vw, 3rem);
+  background: var(--liquid-surface-background);
+  backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
+  box-shadow:
+    0 14px 42px rgba(90, 70, 160, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+:where(.dark) .site-content-surface {
+  border-color: rgba(205, 191, 254, 0.2);
+  background: var(--liquid-surface-background-dark);
+  backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
+  -webkit-backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+}
+.site-content-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(255, 255, 255, 0.34), transparent 58%),
+    linear-gradient(112deg, transparent 34%, rgba(255, 255, 255, 0.1) 50%, transparent 68%);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+}
+.site-content-surface > * {
+  position: relative;
+  z-index: 1;
+}
+:where(.dark) .site-content-surface::before {
+  background:
+    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(205, 191, 254, 0.24), transparent 58%),
+    linear-gradient(112deg, transparent 34%, rgba(142, 205, 247, 0.1) 50%, transparent 68%);
+  opacity: 0.72;
 }
 
 /* 冰晶渐变文字 */
@@ -90,35 +249,243 @@ body::after {
   color: transparent;
 }
 
-/* ================= 沉浸式导航 ================= */
-#site-header[data-immersive].scrolled {
-  border-bottom: 1px solid rgba(183, 157, 250, 0.2);
-  background-color: color-mix(in srgb, #f7f6fd 80%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+/* ================= 液态玻璃导航 ================= */
+/*
+ * 每个导航项都是独立的取景窗口：backdrop-filter 会采样它后面的壁纸、
+ * 内容和渐变色，而不是给整条导航铺一块不透明色带。
+ */
+.nav-glass-control {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.12) 52%, rgba(183, 157, 250, 0.16)),
+    rgba(247, 246, 253, 0.12);
+  backdrop-filter: blur(18px) saturate(1.55) contrast(1.04);
+  -webkit-backdrop-filter: blur(18px) saturate(1.55) contrast(1.04);
+  box-shadow:
+    0 8px 24px rgba(90, 70, 160, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.64),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
 }
-:where(.dark) #site-header[data-immersive].scrolled {
-  border-bottom-color: rgba(205, 191, 254, 0.12);
-  background-color: color-mix(in srgb, var(--color-night-950) 80%, transparent);
+.nav-glass-control::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 90% 140% at var(--nav-light-x, 50%) var(--nav-light-y, 0%),
+      rgba(255, 255, 255, 0.56),
+      rgba(205, 191, 254, 0.12) 36%,
+      transparent 72%
+    );
+  opacity: 0.46;
+  mix-blend-mode: screen;
+  transition: opacity 220ms ease;
 }
+.nav-glass-control::after {
+  content: "";
+  position: absolute;
+  left: var(--nav-press-x, 50%);
+  top: var(--nav-press-y, 50%);
+  z-index: 2;
+  width: 1.4rem;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.84) 0 3%, rgba(183, 157, 250, 0.42) 20%, transparent 70%);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.25);
+}
+.nav-glass-control:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 12px 30px rgba(90, 70, 160, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+}
+.nav-glass-control:hover::before { opacity: 0.72; }
+.nav-glass-control:active,
+.nav-glass-control.is-pressing {
+  transform: scale(0.94);
+}
+.nav-glass-control.is-pressing::after {
+  animation: nav-liquid-press 540ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.nav-glass-control:focus-visible {
+  outline: 2px solid var(--color-ice-400);
+  outline-offset: 3px;
+}
+.nav-brand {
+  padding: 0.5rem 0.875rem;
+}
+.nav-link {
+  color: #4a4368;
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.3);
+}
+.nav-link:hover { color: #2e2848; }
+.nav-link.is-active {
+  color: #5f45b5;
+  border-color: rgba(160, 126, 240, 0.5);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(183, 157, 250, 0.24)),
+    rgba(183, 157, 250, 0.14);
+  box-shadow:
+    0 8px 26px rgba(112, 80, 196, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    inset 0 -1px 0 rgba(183, 157, 250, 0.18);
+}
+[data-theme-toggle] { color: #4a4368; }
+#mobile-menu:not(.hidden) {
+  display: block;
+}
+.nav-mobile-panel {
+  margin-inline: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08)),
+    rgba(247, 246, 253, 0.08);
+  backdrop-filter: blur(22px) saturate(1.45);
+  -webkit-backdrop-filter: blur(22px) saturate(1.45);
+  box-shadow: 0 14px 36px rgba(90, 70, 160, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+.nav-mobile-link { display: block; width: 100%; text-align: left; }
+
+:where(.dark) .nav-glass-control {
+  border-color: rgba(255, 255, 255, 0.24);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.24), rgba(16, 23, 54, 0.2) 52%, rgba(142, 205, 247, 0.14)),
+    rgba(10, 15, 38, 0.18);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.12);
+}
+:where(.dark) .nav-glass-control::before {
+  background:
+    radial-gradient(
+      ellipse 90% 140% at var(--nav-light-x, 50%) var(--nav-light-y, 0%),
+      rgba(255, 255, 255, 0.34),
+      rgba(142, 205, 247, 0.16) 36%,
+      transparent 72%
+    );
+}
+:where(.dark) .nav-glass-control:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.46),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.18);
+}
+:where(.dark) .nav-link {
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 12px rgba(5, 8, 24, 0.36);
+}
+:where(.dark) .nav-link:hover { color: white; }
+:where(.dark) .nav-link.is-active {
+  color: var(--color-lilac-200);
+  border-color: rgba(205, 191, 254, 0.42);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.28), rgba(16, 23, 54, 0.2)),
+    rgba(183, 157, 250, 0.12);
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.16);
+}
+:where(.dark) [data-theme-toggle] { color: rgba(255, 255, 255, 0.8); }
+:where(.dark) .nav-mobile-panel {
+  border-color: rgba(205, 191, 254, 0.18);
+  background:
+    linear-gradient(135deg, rgba(26, 34, 71, 0.52), rgba(10, 15, 38, 0.32)),
+    rgba(10, 15, 38, 0.16);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* 首页/登录页滚出首屏后，只调整按钮取景的明暗，不恢复整条色块。 */
 #site-header[data-immersive].scrolled .nav-brand,
-#site-header[data-immersive].scrolled .nav-link {
+#site-header[data-immersive].scrolled .nav-link,
+#site-header[data-immersive].scrolled [data-theme-toggle] {
   color: var(--color-night-900);
   text-shadow: none;
   filter: none;
 }
 :where(.dark) #site-header[data-immersive].scrolled .nav-brand,
-:where(.dark) #site-header[data-immersive].scrolled .nav-link {
+:where(.dark) #site-header[data-immersive].scrolled .nav-link,
+:where(.dark) #site-header[data-immersive].scrolled [data-theme-toggle] {
   color: white;
 }
-#site-header[data-immersive].scrolled .nav-link:not(.is-active) {
-  color: #6b6486;
-}
-:where(.dark) #site-header[data-immersive].scrolled .nav-link:not(.is-active) {
-  color: #9a94b8;
+#site-header[data-immersive].scrolled .nav-link:not(.is-active) { color: #6b6486; }
+:where(.dark) #site-header[data-immersive].scrolled .nav-link:not(.is-active) { color: #9a94b8; }
+
+@keyframes nav-liquid-press {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.25); }
+  12% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(4.4); }
 }
 
-/* ================= 首屏 ================= */
+@media (prefers-reduced-motion: reduce) {
+  .nav-glass-control { transition: none; }
+  .nav-glass-control.is-pressing::after { animation: none; }
+}
+
+/* ================= 全站固定壁纸 ================= */
+/* 这组壁纸令牌同时被全站固定背景复用。 */
+.site-wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.site-wallpaper__image {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * 全屏玻璃层：图片始终固定，滚动脚本只更新这些自定义属性。
+ * 透明度与 backdrop-filter 同步增强，形成类似 iOS 的半透明、柔化和高光效果。
+ */
+.site-wallpaper__glass {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: var(--site-glass-opacity, 0.035);
+  background:
+    radial-gradient(ellipse 70% 45% at 18% 8%, rgba(255, 255, 255, 0.28), transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(247, 246, 253, 0.06) 48%, rgba(10, 15, 38, 0.16));
+  backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1));
+  -webkit-backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  transition: opacity 220ms ease;
+}
+
+:where(.dark) .site-wallpaper__glass {
+  background:
+    radial-gradient(ellipse 70% 45% at 18% 8%, rgba(205, 191, 254, 0.2), transparent 64%),
+    linear-gradient(180deg, rgba(16, 23, 54, 0.12), rgba(10, 15, 38, 0.18) 48%, rgba(10, 15, 38, 0.4));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.12);
+}
+
 .hero-bg {
   /* 壁纸按「主题 × 设备」四选一，缺图时自动落到下一层兜底：
      亮色桌面 hero-light.jpg / 亮色移动 hero-light-mobile.jpg /
@@ -213,6 +580,7 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .scroll-hint { animation: none; }
   .type-caret { animation: none; }
+  .site-wallpaper__glass { transition: none; }
 }
 
 /* ================= 滚动淡入 ================= */
@@ -292,7 +660,27 @@ body::after {
   width: min(22rem, calc(100vw - 2rem));
   overflow: hidden;
   border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 54%, rgba(183, 157, 250, 0.14)),
+    rgba(247, 246, 253, 0.1);
+  backdrop-filter: blur(22px) saturate(1.45) contrast(1.03);
+  -webkit-backdrop-filter: blur(22px) saturate(1.45) contrast(1.03);
+  box-shadow:
+    0 14px 40px rgba(90, 70, 160, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
   transition: width 0.25s ease, box-shadow 0.25s ease;
+}
+:where(.dark) .music-player {
+  border-color: rgba(205, 191, 254, 0.2);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.22), rgba(16, 23, 54, 0.18) 54%, rgba(142, 205, 247, 0.12)),
+    rgba(10, 15, 38, 0.2);
+  box-shadow:
+    0 16px 46px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
 }
 .music-player[data-collapsed="false"] {
   box-shadow: 0 20px 60px rgba(10, 15, 38, 0.28);
@@ -361,16 +749,17 @@ body::after {
 .music-room__visual {
   position: relative;
   isolation: isolate;
-  background-image: url('/hero.jpg');
-  background-position: center 28%;
-  background-size: cover;
+  background: rgba(11, 17, 46, 0.3);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
 }
 .music-room__visual-wash {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   background: linear-gradient(110deg, rgba(10, 15, 38, 0.82), rgba(16, 23, 54, 0.44) 52%, rgba(10, 15, 38, 0.72));
 }
+.music-room__visual > .relative { z-index: 1; }
 .music-room__visual-copy { text-shadow: 0 2px 18px rgba(5, 8, 24, 0.35); }
 .music-room__cover-shell { position: relative; }
 .room-track.is-active {
@@ -382,7 +771,239 @@ body::after {
 .room-track:hover .room-track__icon,
 .room-track.is-active .room-track__icon { opacity: 1; }
 
+/* ================= 音乐室液态玻璃层级 ================= */
+.music-room__intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+.music-room__intro-copy { min-width: 0; }
+.music-room__status-chip,
+.music-room__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(183, 157, 250, 0.28);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  color: #6b6486;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.music-room__status-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: #8ecdf7;
+  box-shadow: 0 0 0.7rem rgba(142, 205, 247, 0.9);
+}
+.music-room__visual {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 16%, rgba(183, 157, 250, 0.2), transparent 30%),
+    radial-gradient(circle at 84% 78%, rgba(142, 205, 247, 0.16), transparent 34%),
+    rgba(11, 17, 46, 0.2);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+}
+.music-room__visual::before {
+  content: "";
+  position: absolute;
+  top: -12rem;
+  right: -8rem;
+  z-index: 0;
+  width: 30rem;
+  height: 30rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(183, 157, 250, 0.24), rgba(142, 205, 247, 0.08) 38%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+.music-room__visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(118deg, rgba(255, 255, 255, 0.1), transparent 34%, rgba(205, 191, 254, 0.06) 68%, transparent);
+}
+.music-room__visual-wash {
+  background:
+    radial-gradient(ellipse 55% 70% at 8% 50%, rgba(10, 15, 38, 0.5), transparent 74%),
+    linear-gradient(110deg, rgba(10, 15, 38, 0.62), rgba(16, 23, 54, 0.24) 52%, rgba(10, 15, 38, 0.48));
+}
+.music-room__visual > .relative { z-index: 1; }
+.music-room__visual-copy {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 18px rgba(5, 8, 24, 0.35);
+}
+.music-room__visual-kicker {
+  display: inline-flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  padding-bottom: 0.5rem;
+}
+.music-room__now {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.24);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.2), rgba(16, 23, 54, 0.14) 55%, rgba(142, 205, 247, 0.1)),
+    rgba(10, 15, 38, 0.26);
+  backdrop-filter: blur(24px) saturate(1.35);
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  box-shadow:
+    0 18px 48px rgba(5, 8, 24, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+}
+.music-room__now::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 80% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 58%),
+    linear-gradient(112deg, transparent 36%, rgba(142, 205, 247, 0.08) 52%, transparent 70%);
+}
+.music-room__now > * { position: relative; z-index: 1; }
+.music-room__cover-shell {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(5, 8, 24, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.room-control {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition: transform 220ms ease, background 220ms ease, border-color 220ms ease;
+}
+.room-control:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.16);
+}
+.room-control:active { transform: scale(0.93); }
+.room-control--main {
+  border-color: rgba(255, 255, 255, 0.68);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(205, 191, 254, 0.8));
+  color: var(--color-night-950);
+  box-shadow: 0 10px 24px rgba(5, 8, 24, 0.26), inset 0 1px 0 white;
+}
+.room-control--main:hover {
+  background: linear-gradient(135deg, white, rgba(205, 191, 254, 0.92));
+}
+.music-room__playlist {
+  display: grid;
+  gap: 0.65rem;
+}
+.room-track {
+  position: relative;
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(183, 157, 250, 0.16);
+  border-radius: 1.25rem;
+  padding: 0.75rem 1rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04) 58%, rgba(183, 157, 250, 0.08)),
+    rgba(247, 246, 253, 0.04);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: #5f5878;
+  transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+.room-track > * { position: relative; z-index: 1; }
+.room-track:hover {
+  transform: translateX(0.25rem);
+  border-color: rgba(160, 126, 240, 0.36);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(183, 157, 250, 0.1)),
+    rgba(247, 246, 253, 0.08);
+  box-shadow: 0 8px 24px rgba(90, 70, 160, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.room-track.is-active {
+  color: #7655d2;
+  border-color: rgba(160, 126, 240, 0.46);
+  background:
+    linear-gradient(135deg, rgba(183, 157, 250, 0.24), rgba(142, 205, 247, 0.1)),
+    rgba(183, 157, 250, 0.08);
+  box-shadow: 0 10px 26px rgba(112, 80, 196, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.room-track__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(183, 157, 250, 0.2);
+  border-radius: 999px;
+  background: rgba(183, 157, 250, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.room-track:hover .room-track__icon,
+.room-track.is-active .room-track__icon { opacity: 1; }
+.music-room__status {
+  display: inline-flex;
+  border-left: 2px solid rgba(160, 126, 240, 0.42);
+  padding-left: 0.75rem;
+}
+.music-room__notice {
+  border: 1px solid rgba(183, 157, 250, 0.2);
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(183, 157, 250, 0.06);
+}
+:where(.dark) .music-room__status-chip,
+:where(.dark) .music-room__count {
+  border-color: rgba(205, 191, 254, 0.2);
+  background: rgba(16, 23, 54, 0.18);
+  color: rgba(227, 219, 254, 0.72);
+}
+:where(.dark) .music-room__now { border-color: rgba(205, 191, 254, 0.2); }
+:where(.dark) .room-track {
+  border-color: rgba(205, 191, 254, 0.12);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.1), rgba(16, 23, 54, 0.08) 58%, rgba(142, 205, 247, 0.06)),
+    rgba(10, 15, 38, 0.08);
+  color: rgba(227, 219, 254, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+:where(.dark) .room-track:hover {
+  border-color: rgba(205, 191, 254, 0.28);
+  background:
+    linear-gradient(135deg, rgba(205, 191, 254, 0.16), rgba(142, 205, 247, 0.08)),
+    rgba(10, 15, 38, 0.14);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+:where(.dark) .music-room__notice {
+  border-color: rgba(205, 191, 254, 0.16);
+  background: rgba(16, 23, 54, 0.14);
+}
+
 @media (max-width: 640px) {
+  .music-room__intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .music-room__status-chip { align-self: flex-start; }
   .music-player {
     left: 0;
     right: 0;
@@ -398,10 +1019,18 @@ body::after {
   .music-player__panel { max-height: min(70vh, 30rem); overflow-y: auto; }
   body:has(#music-player) main { padding-bottom: 6rem; }
   .music-room__visual { margin-inline: -0.25rem; }
+  .music-room__visual > .relative {
+    min-height: auto;
+    gap: 2.5rem;
+  }
+  .music-room__visual-copy p:last-child { max-width: 22rem; }
+  .music-room__now { padding: 1.25rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .music-player,
+  .room-control,
+  .room-track,
   .room-track__icon { transition: none; }
 }
 

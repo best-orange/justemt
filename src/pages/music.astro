@@ -7,20 +7,26 @@ const musicAvailable = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.
 <BaseLayout wide title="音乐室 · justEMT" description="Emilia 的雪夜音乐室，收录冰晶与微光。">
   <section class="music-room reveal" id="music-room">
     <header class="music-room__intro">
-      <p class="eyebrow text-lilac-500 dark:text-lilac-300">EMILIA'S WINTER MUSIC ROOM</p>
-      <h1 class="mt-4 font-display text-4xl font-black tracking-wide text-slate-900 dark:text-white sm:text-6xl">
-        <span class="text-frost">音乐室</span>
-      </h1>
-      <p class="mt-4 max-w-xl text-base leading-8 text-slate-600 dark:text-slate-400">
-        在雪落下来的时候，留一盏灯，听一首歌。这里是属于 Emilia 的安静角落。
-      </p>
+      <div class="music-room__intro-copy">
+        <p class="eyebrow text-lilac-500 dark:text-lilac-300">EMILIA'S WINTER MUSIC ROOM</p>
+        <h1 class="mt-4 font-display text-4xl font-black tracking-wide text-slate-900 dark:text-white sm:text-6xl">
+          <span class="text-frost">音乐室</span>
+        </h1>
+        <p class="mt-4 max-w-xl text-base leading-8 text-slate-600 dark:text-slate-400">
+          在雪落下来的时候，留一盏灯，听一首歌。这里是属于 Emilia 的安静角落。
+        </p>
+      </div>
+      <span class="music-room__status-chip">
+        <span class="music-room__status-dot" aria-hidden="true"></span>
+        {musicAvailable ? 'SERVICE READY' : 'AWAITING SERVICE'}
+      </span>
     </header>
 
     <div class="music-room__visual mt-10 overflow-hidden rounded-3xl border border-white/20 shadow-2xl shadow-night-950/15 dark:border-lilac-300/10">
       <div class="music-room__visual-wash"></div>
       <div class="relative grid min-h-[34rem] items-end gap-10 p-6 sm:p-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] lg:items-center lg:p-14">
         <div class="music-room__visual-copy max-w-lg">
-          <p class="text-xs tracking-[0.32em] text-white/60">A LITTLE LIGHT IN THE SNOW</p>
+          <p class="music-room__visual-kicker text-xs tracking-[0.32em] text-white/60">A LITTLE LIGHT IN THE SNOW</p>
           <p class="mt-5 font-display text-3xl font-bold leading-relaxed text-white sm:text-5xl">愿这段旋律，陪你走过安静的夜晚。</p>
           <p class="mt-5 text-sm leading-7 text-white/65">播放由你的第一次点击开始。离开页面时，歌曲与进度会留在这里。</p>
         </div>
@@ -67,14 +73,14 @@ const musicAvailable = Boolean(import.meta.env.MUSIC_API_KEY && import.meta.env.
           <p class="eyebrow text-lilac-500 dark:text-lilac-300">THE FIXED PLAYLIST</p>
           <h2 class="mt-3 font-display text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">RE:0 曲目收藏</h2>
         </div>
-        <span id="room-count" class="text-sm tabular-nums text-slate-400"></span>
+        <span id="room-count" class="music-room__count text-sm tabular-nums text-slate-400"></span>
       </div>
-      <div id="room-playlist" class="room-track-list mt-8 max-w-3xl divide-y divide-lilac-400/10" aria-live="polite"></div>
-      <p id="room-status" class="mt-8 text-sm text-slate-400">正在整理曲目…</p>
+      <div id="room-playlist" class="room-track-list music-room__playlist mt-8 max-w-3xl" aria-live="polite"></div>
+      <p id="room-status" class="music-room__status mt-6 text-sm text-slate-400">正在整理曲目…</p>
     </section>
 
     {!musicAvailable && (
-      <p class="mt-8 border-l border-lilac-400/40 pl-4 text-sm text-slate-500 dark:text-slate-400">音乐服务尚未连接，配置完成后这里会出现固定歌单。</p>
+      <p class="music-room__notice mt-8 text-sm text-slate-500 dark:text-slate-400">音乐服务尚未连接，配置完成后这里会出现固定歌单。</p>
     )}
   </section>
 </BaseLayout>

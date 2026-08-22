@@ -24,23 +24,21 @@ const isActive = (href: string) =>
 <header
   id="site-header"
   data-immersive={immersive ? 'true' : undefined}
-  class:list={[
-    'fixed inset-x-0 top-0 z-40 transition-colors duration-300',
-    immersive
-      // 首页初始：完全透明，无边框（下滑后由脚本加 .scrolled 切换）
-      ? 'bg-transparent'
-      : 'glass border-b',
-  ]}
+  class="fixed inset-x-0 top-0 z-40"
 >
   <nav class="mx-auto flex h-16 max-w-4xl items-center justify-between px-4">
     <a
       href="/"
       class:list={[
-        'nav-brand font-display text-lg font-bold tracking-wide transition-colors',
-        immersive ? 'text-[#3d3658] dark:text-white dark:drop-shadow' : 'text-frost',
+        'nav-glass-control nav-brand rounded-full px-3.5 py-2 font-display text-lg font-bold tracking-wide',
       ]}
     >
-      just<em class="not-italic opacity-80">EMT</em>
+      <span
+        class:list={[
+          'nav-brand__label relative z-[1]',
+          immersive ? 'text-[#3d3658] dark:text-white dark:drop-shadow' : 'text-frost',
+        ]}
+      >Emilia</span>
     </a>
 
     <!-- 桌面端：横向链接 -->
@@ -49,18 +47,11 @@ const isActive = (href: string) =>
         <a
           href={l.href}
           class:list={[
-            'nav-link rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            'nav-glass-control nav-link rounded-full px-3.5 py-2 text-sm font-medium',
             isActive(l.href) && 'is-active',
-            immersive
-              ? (isActive(l.href)
-                  ? 'text-[#2e2848] dark:text-white dark:drop-shadow'
-                  : 'text-[#4a4368]/75 hover:text-[#2e2848] dark:text-white/70 dark:hover:text-white dark:drop-shadow')
-              : (isActive(l.href)
-                  ? 'text-violet-700 dark:text-lilac-300'
-                  : 'text-slate-500 hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200'),
           ]}
         >
-          {l.label}
+          <span class="relative z-[1]">{l.label}</span>
         </a>
       ))}
       <ThemeToggle />
@@ -77,16 +68,16 @@ const isActive = (href: string) =>
         aria-expanded="false"
         aria-controls="mobile-menu"
         class:list={[
-          'nav-link inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
+          'nav-glass-control nav-link inline-flex h-10 w-10 items-center justify-center rounded-full',
           immersive ? 'text-[#3d3658] dark:text-white dark:drop-shadow' : 'text-slate-600 dark:text-slate-300',
         ]}
       >
         <!-- 三横线 -->
-        <svg id="menu-icon-open" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <svg id="menu-icon-open" class="relative z-[1] h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
         </svg>
         <!-- 关闭叉 -->
-        <svg id="menu-icon-close" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <svg id="menu-icon-close" class="relative z-[1] hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
         </svg>
       </button>
@@ -96,20 +87,18 @@ const isActive = (href: string) =>
   <!-- 移动端下拉面板 -->
   <div
     id="mobile-menu"
-    class="glass hidden border-b px-4 pb-4 pt-2 sm:hidden"
+    class="nav-mobile-panel hidden px-4 pb-4 pt-2 sm:hidden"
   >
-    <div class="flex flex-col">
+    <div class="flex flex-col gap-2">
       {links.map((l) => (
         <a
           href={l.href}
           class:list={[
-            'rounded-lg px-3 py-3 text-base font-medium transition-colors',
-            isActive(l.href)
-              ? 'text-violet-700 dark:text-lilac-300'
-              : 'text-slate-600 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200',
+            'nav-glass-control nav-link nav-mobile-link rounded-2xl px-4 py-3 text-base font-medium',
+            isActive(l.href) && 'is-active',
           ]}
         >
-          {l.label}
+          <span class="relative z-[1]">{l.label}</span>
         </a>
       ))}
     </div>
@@ -143,6 +132,28 @@ const isActive = (href: string) =>
     // 点击链接后收起
     if (event.target.closest('#mobile-menu a')) setMenuOpen(false);
   });
+
+  // 液态玻璃按钮的局部折射光与点击扩散反馈。
+  document.addEventListener('pointermove', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const control = event.target.closest<HTMLElement>('.nav-glass-control');
+    if (!control) return;
+    const rect = control.getBoundingClientRect();
+    control.style.setProperty('--nav-light-x', `${event.clientX - rect.left}px`);
+    control.style.setProperty('--nav-light-y', `${event.clientY - rect.top}px`);
+  }, { passive: true });
+
+  document.addEventListener('pointerdown', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const control = event.target.closest<HTMLElement>('.nav-glass-control');
+    if (!control) return;
+    const rect = control.getBoundingClientRect();
+    control.style.setProperty('--nav-press-x', `${event.clientX - rect.left}px`);
+    control.style.setProperty('--nav-press-y', `${event.clientY - rect.top}px`);
+    control.classList.remove('is-pressing');
+    requestAnimationFrame(() => control.classList.add('is-pressing'));
+    window.setTimeout(() => control.classList.remove('is-pressing'), 560);
+  }, { passive: true });
 
   // 窗口拉宽到桌面尺寸时收起，避免状态残留
   window.addEventListener('resize', () => {

@@ -9,7 +9,7 @@ import MusicPlayer from '../components/MusicPlayer.astro';
 interface Props {
   title?: string;
   description?: string;
-  /** 沉浸式模式：导航透明悬浮、内容全宽（用于首页壁纸首屏） */
+  /** 沉浸式模式：导航透明悬浮、内容全宽（用于首页和登录页等全屏场景） */
   immersive?: boolean;
   /** 宽版内容：用于需要同时展示封面与歌单的工具页面 */
   wide?: boolean;
@@ -69,15 +69,29 @@ const {
       })();
     </script>
   </head>
-  <body class="min-h-screen font-sans text-slate-800 antialiased dark:text-slate-200">
+  <body
+    class:list={[
+      'min-h-screen font-sans text-slate-800 antialiased dark:text-slate-200',
+      'site-shell',
+      immersive && 'is-immersive',
+    ]}
+  >
     <Nav immersive={immersive} />
+    <!-- 首页壁纸作为全站固定背景；内容通过下方的玻璃层与它融合。 -->
+    <div class="site-wallpaper" data-site-wallpaper aria-hidden="true">
+      <div class="hero-bg site-wallpaper__image"></div>
+      <div class="site-wallpaper__glass"></div>
+    </div>
+
     {immersive ? (
-      <main>
+      <main class="site-main site-main--immersive">
         <slot />
       </main>
     ) : (
-      <main class:list={['mx-auto px-4 pb-12 pt-24', wide ? 'max-w-6xl' : 'max-w-3xl']}>
-        <slot />
+      <main class:list={['site-main mx-auto px-4 pb-12 pt-24', wide ? 'max-w-6xl' : 'max-w-3xl']}>
+        <div class="site-content-surface">
+          <slot />
+        </div>
       </main>
     )}
     <Footer />
@@ -85,3 +99,48 @@ const {
     <MusicPlayer />
   </body>
 </html>
+
+<script is:inline>
+  (() => {
+    let cleanup = () => {};
+    let glassFrame;
+
+    const initializeSiteWallpaper = () => {
+      cleanup();
+
+      const wallpaper = document.querySelector('[data-site-wallpaper]');
+      if (!wallpaper) return;
+
+      const controller = new AbortController();
+      const updateGlass = () => {
+        glassFrame = undefined;
+
+        const scrollRange = Math.max(window.innerHeight * 1.25, 1);
+        const rawProgress = Math.min(Math.max(window.scrollY / scrollRange, 0), 1);
+        // 让玻璃层在刚开始上滑时更柔和，接近内容区时再明显出现。
+        const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+
+        wallpaper.style.setProperty('--site-glass-opacity', (0.035 + progress * 0.66).toFixed(3));
+        wallpaper.style.setProperty('--site-glass-blur', `${(progress * 22).toFixed(2)}px`);
+        wallpaper.style.setProperty('--site-glass-saturation', (1 + progress * 0.38).toFixed(3));
+      };
+      const requestGlassUpdate = () => {
+        if (glassFrame === undefined) glassFrame = window.requestAnimationFrame(updateGlass);
+      };
+
+      updateGlass();
+      window.addEventListener('scroll', requestGlassUpdate, { passive: true, signal: controller.signal });
+      window.addEventListener('resize', requestGlassUpdate, { passive: true, signal: controller.signal });
+
+      cleanup = () => {
+        controller.abort();
+        if (glassFrame !== undefined) window.cancelAnimationFrame(glassFrame);
+        glassFrame = undefined;
+      };
+    };
+
+    initializeSiteWallpaper();
+    document.addEventListener('astro:page-load', initializeSiteWallpaper);
+    document.addEventListener('astro:before-swap', cleanup);
+  })();
+</script>

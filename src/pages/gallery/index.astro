@@ -33,6 +33,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   <!-- 动态灯箱：缩略图先到，原图随后替换，弱网下不会出现空白大图。 -->
   <div
     id="lightbox"
+    slot="overlay"
     class="pointer-events-none fixed inset-0 z-[80] hidden items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
     role="dialog"
     aria-modal="true"
@@ -49,13 +50,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </button>
     <figure class="w-full max-h-[88vh] max-w-[92vw] text-center">
       <div class="relative min-h-24 min-w-24">
-        <img id="lb-preview" src="" alt="" class="mx-auto max-h-[78vh] max-w-full rounded-xl object-contain opacity-70 blur-sm transition-opacity" />
-        <img id="lb-img" src="" alt="" class="absolute inset-0 mx-auto max-h-[78vh] max-w-full rounded-xl object-contain opacity-0 transition-opacity" />
+        <img id="lb-preview" src="" alt="" decoding="async" class="mx-auto max-h-[78vh] max-w-full rounded-xl object-contain opacity-70 blur-sm transition-opacity" />
+        <img id="lb-img" src="" alt="" decoding="async" class="absolute inset-0 mx-auto max-h-[78vh] max-w-full rounded-xl object-contain opacity-0 transition-opacity" />
       </div>
       <figcaption class="mt-4">
         <p id="lb-title" class="font-display text-lg font-bold text-white"></p>
         <p id="lb-desc" class="mt-1 text-sm text-white/70"></p>
         <p id="lb-count" class="mt-2 text-xs tracking-widest text-white/40"></p>
+        <a id="lb-original" href="#" target="_blank" rel="noopener" class="mt-1 inline-block text-xs text-white/50 underline-offset-4 transition-colors hover:text-white hover:underline">查看原图</a>
       </figcaption>
     </figure>
   </div>
@@ -97,6 +99,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     const lbTitle = document.getElementById('lb-title')!;
     const lbDesc = document.getElementById('lb-desc')!;
     const lbCount = document.getElementById('lb-count')!;
+    const lbOriginal = document.getElementById('lb-original') as HTMLAnchorElement;
 
     const controller = new AbortController();
     const { signal } = controller;
@@ -151,7 +154,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       }
       img.className = 'block h-auto w-full';
       img.addEventListener('error', () => {
-        if (img.src !== photo.image) img.src = photo.image;
+        const fallback = photo.preview || photo.image;
+        if (img.src !== fallback) img.src = fallback;
       }, { once: true });
 
       const caption = document.createElement('figcaption');
@@ -207,7 +211,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       lbDesc.textContent = photo.description ?? photo.date;
       lbCount.textContent = `${index + 1} / ${photos.length}`;
       lbPreview.src = photo.thumbnail || photo.preview || photo.image;
-      lbImage.src = photo.image;
+      // 灯箱展示 ≤2000px 预览而非原图：原图最大可达 ~52MP/30MB，
+      // 直接加载会在主线程解码时把页面卡死；原图改由「查看原图」在新标签页打开。
+      lbImage.src = photo.preview || photo.image;
+      lbOriginal.href = photo.image;
       lbImage.alt = photo.title;
       lbImage.classList.add('opacity-0');
       lbImage.onload = () => lbImage.classList.remove('opacity-0');

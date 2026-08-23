@@ -94,6 +94,8 @@ const {
         </div>
       </main>
     )}
+    <!-- 页面级浮层必须脱离内容玻璃面板，否则 fixed 会被面板的层叠上下文和 overflow 影响。 -->
+    <slot name="overlay" />
     <Footer />
     <SpiritSparks />
     <MusicPlayer />

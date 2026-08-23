@@ -59,10 +59,6 @@ body.site-shell > footer {
   z-index: 1;
 }
 
-body.site-shell:has(#lightbox.is-open) > .site-main {
-  z-index: 80;
-}
-
 /* 全局细腻噪点，模拟雪粒胶片感 */
 body::after {
   content: "";

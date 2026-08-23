@@ -8,9 +8,9 @@ export const prerender = false;
 // 已登录：直接放行到目标页
 const next = Astro.url.searchParams.get('next') ?? '/blog';
 if (verifyToken(Astro.cookies.get(AUTH_COOKIE)?.value)) {
-  return Astro.redirect(next.startsWith('/blog') || next === '/gallery/manage' ? next : '/blog');
+  return Astro.redirect(next.startsWith('/blog') || next === '/gallery/manage' || next === '/visitors' ? next : '/blog');
 }
-const safeNext = next.startsWith('/blog') || next === '/gallery/manage' ? next : '/blog';
+const safeNext = next.startsWith('/blog') || next === '/gallery/manage' || next === '/visitors' ? next : '/blog';
 ---
 
 <BaseLayout immersive title="风铃之间 · justEMT" description="说出暗号，进入冰封的阅览室。">
@@ -47,7 +47,7 @@ const safeNext = next.startsWith('/blog') || next === '/gallery/manage' ? next :
         </button>
       </form>
 
-      <a href="/" class="mt-5 inline-block text-xs text-white/50 transition-colors hover:text-white/80">
+      <a href="/" class="mt-5 inline-block text-xs text-white/75 transition-colors hover:text-white">
         ← 返回美术馆大厅
       </a>
     </div>

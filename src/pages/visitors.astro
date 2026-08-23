@@ -1,0 +1,212 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+export const prerender = false;
+---
+
+<BaseLayout title="来访雪笺 · justEMT" description="记录每一份匿名来访的微光。">
+  <section data-visitors-page class="reveal">
+    <header>
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p class="text-xs tracking-[0.35em] text-lilac-500 dark:text-lilac-300">VISITOR LOG</p>
+          <h1 class="mt-3 font-display text-4xl font-black tracking-wide"><span class="text-frost">来访雪笺</span></h1>
+          <p class="mt-3 text-slate-600 dark:text-slate-300">每一份来访都会留下微光，IP 后半部分已用星号隐藏。</p>
+        </div>
+        <div class="flex shrink-0 gap-2">
+          <button id="visitor-refresh" type="button" class="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">刷新</button>
+          <a href="/" class="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">返回大厅</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <article class="glass rounded-2xl p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-300">累计访客</p>
+        <p id="visitor-total-unique" class="mt-2 font-display text-3xl font-bold text-frost">—</p>
+        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">按匿名浏览器去重</p>
+      </article>
+      <article class="glass rounded-2xl p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-300">今日访客</p>
+        <p id="visitor-today-unique" class="mt-2 font-display text-3xl font-bold text-frost">—</p>
+        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">按匿名浏览器去重</p>
+      </article>
+      <article class="glass rounded-2xl p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-300">今日来访次数</p>
+        <p id="visitor-today-visits" class="mt-2 font-display text-3xl font-bold text-frost">—</p>
+        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">同一路径 5 分钟内去重</p>
+      </article>
+      <article class="glass rounded-2xl p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-300">网站运行时间</p>
+        <p id="visitor-uptime" class="mt-2 font-display text-2xl font-bold text-frost">—</p>
+        <p id="visitor-started" class="mt-1 text-xs text-slate-400 dark:text-slate-400">正在计算…</p>
+      </article>
+    </div>
+
+    <section class="glass mt-6 rounded-3xl p-5 sm:p-6" aria-labelledby="visitor-recent-title">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h2 id="visitor-recent-title" class="font-display text-2xl font-bold text-frost">最近足迹</h2>
+          <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">仅保留最近 100 条，IP 后半部分已隐藏。</p>
+        </div>
+        <div class="text-right">
+          <span id="visitor-status" class="block text-xs text-slate-400 dark:text-slate-400" role="status">载入中…</span>
+          <span id="visitor-storage" class="mt-1 block text-[10px] text-slate-400 dark:text-slate-500">正在检查存储状态…</span>
+        </div>
+      </div>
+      <div id="visitor-list" class="mt-5 divide-y divide-lilac-400/10">
+        <p class="py-5 text-sm text-slate-400 dark:text-slate-400">正在翻开雪笺…</p>
+      </div>
+    </section>
+  </section>
+</BaseLayout>
+
+<script>
+  type VisitorRecord = {
+    visitorKey: string;
+    ip: string;
+    path: string;
+    visitedAt: string;
+    firstToday: boolean;
+  };
+
+  type VisitorResponse = {
+    ok?: boolean;
+    totalVisitors?: number;
+    totalVisits?: number;
+    todayVisits?: number;
+    todayUniqueVisitors?: number;
+    siteStartedAt?: string;
+    uptimeSeconds?: number;
+    recent?: VisitorRecord[];
+    store?: { effective?: 'redis' | 'memory' };
+    message?: string;
+  };
+
+  let activeVisitorsPage: HTMLElement | undefined;
+  let cleanupVisitorsPage: (() => void) | undefined;
+
+  function initializeVisitorsPage() {
+    const page = document.querySelector<HTMLElement>('[data-visitors-page]');
+    if (!page || page === activeVisitorsPage) return;
+
+    cleanupVisitorsPage?.();
+    activeVisitorsPage = page;
+
+    const totalUnique = page.querySelector<HTMLElement>('#visitor-total-unique')!;
+    const todayUnique = page.querySelector<HTMLElement>('#visitor-today-unique')!;
+    const todayVisits = page.querySelector<HTMLElement>('#visitor-today-visits')!;
+    const uptime = page.querySelector<HTMLElement>('#visitor-uptime')!;
+    const started = page.querySelector<HTMLElement>('#visitor-started')!;
+    const storage = page.querySelector<HTMLElement>('#visitor-storage')!;
+    const status = page.querySelector<HTMLElement>('#visitor-status')!;
+    const list = page.querySelector<HTMLElement>('#visitor-list')!;
+    const refresh = page.querySelector<HTMLButtonElement>('#visitor-refresh')!;
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const pathLabel = (path: string) => ({
+      '/': '首页',
+      '/music': '音乐室',
+      '/gallery': '画廊',
+      '/about': '关于',
+    }[path] ?? path);
+
+    const formatTime = (value: string) => {
+      const date = new Date(value);
+      if (Number.isNaN(date.valueOf())) return '时间未知';
+      return new Intl.DateTimeFormat('zh-CN', {
+        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+      }).format(date);
+    };
+
+    const formatUptime = (seconds: number) => {
+      const totalSeconds = Math.max(0, Math.floor(seconds));
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      if (days) return `${days} 天 ${hours} 小时`;
+      if (hours) return `${hours} 小时 ${minutes} 分钟`;
+      return `${minutes} 分钟`;
+    };
+
+    function renderRecord(record: VisitorRecord) {
+      const row = document.createElement('article');
+      row.className = 'flex items-center justify-between gap-4 py-3';
+
+      const main = document.createElement('div');
+      main.className = 'min-w-0';
+      const path = document.createElement('p');
+      path.className = 'truncate text-sm font-medium text-slate-700 dark:text-slate-200';
+      path.textContent = pathLabel(record.path);
+      const detail = document.createElement('p');
+      detail.className = 'mt-1 truncate text-xs text-slate-400 dark:text-slate-400';
+      detail.textContent = `${record.ip} · ${record.path} · 匿名访客 ${record.visitorKey}`;
+      main.append(path, detail);
+
+      const aside = document.createElement('div');
+      aside.className = 'flex shrink-0 items-center gap-2';
+      if (record.firstToday) {
+        const badge = document.createElement('span');
+        badge.className = 'rounded-full bg-lilac-400/15 px-2 py-1 text-[10px] text-violet-700 dark:text-lilac-200';
+        badge.textContent = '今日首次';
+        aside.append(badge);
+      }
+      const time = document.createElement('time');
+      time.className = 'text-xs text-slate-400 dark:text-slate-400';
+      time.dateTime = record.visitedAt;
+      time.textContent = formatTime(record.visitedAt);
+      aside.append(time);
+
+      row.append(main, aside);
+      return row;
+    }
+
+    async function load() {
+      refresh.disabled = true;
+      status.textContent = '载入中…';
+      try {
+        const response = await fetch('/api/visitors', { cache: 'no-store', signal });
+        const body = await response.json() as VisitorResponse;
+        if (!response.ok || !body.ok) throw new Error(body.message ?? '读取失败');
+        totalUnique.textContent = String(body.totalVisitors ?? 0);
+        todayUnique.textContent = String(body.todayUniqueVisitors ?? 0);
+        todayVisits.textContent = String(body.todayVisits ?? 0);
+        uptime.textContent = formatUptime(body.uptimeSeconds ?? 0);
+        started.textContent = body.siteStartedAt ? `自 ${formatTime(body.siteStartedAt)}` : '上线时间未知';
+        storage.textContent = body.store?.effective === 'redis' ? '已同步云端存储' : '当前为本地临时存储';
+        const records = body.recent ?? [];
+        list.replaceChildren(...(records.length
+          ? records.map(renderRecord)
+          : [Object.assign(document.createElement('p'), {
+            className: 'py-5 text-sm text-slate-400 dark:text-slate-400',
+            textContent: '还没有来访记录。',
+          })]));
+        status.textContent = `最近 ${records.length} 条`;
+      } catch (error) {
+        if (signal.aborted) return;
+        status.textContent = '读取失败';
+        storage.textContent = '存储状态未知';
+        list.replaceChildren(Object.assign(document.createElement('p'), {
+          className: 'py-5 text-sm text-rose-500 dark:text-rose-300',
+          textContent: error instanceof Error ? error.message : '来访雪笺暂时无法打开',
+        }));
+      } finally {
+        refresh.disabled = false;
+      }
+    }
+
+    page.classList.add('is-visible');
+    refresh.addEventListener('click', () => void load(), { signal });
+    void load();
+
+    cleanupVisitorsPage = () => {
+      controller.abort();
+      if (activeVisitorsPage === page) activeVisitorsPage = undefined;
+    };
+    document.addEventListener('astro:before-swap', cleanupVisitorsPage, { once: true, signal });
+  }
+
+  initializeVisitorsPage();
+  document.addEventListener('astro:page-load', initializeVisitorsPage);
+</script>

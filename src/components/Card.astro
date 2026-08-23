@@ -5,10 +5,11 @@ interface Props {
   href: string;
   date?: Date;
   tags?: string[];
+  isPrivate?: boolean;
   external?: boolean;
 }
 
-const { title, description, href, date, tags = [], external = false } = Astro.props;
+const { title, description, href, date, tags = [], isPrivate = false, external = false } = Astro.props;
 
 const dateStr = date
   ? new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date)
@@ -22,12 +23,15 @@ const dateStr = date
   class="glass group block rounded-2xl p-5 transition-transform duration-300 hover:-translate-y-0.5"
 >
   <div class="flex items-center justify-between gap-4">
-    <h3 class="font-display font-bold text-slate-900 group-hover:text-violet-700 dark:text-white dark:group-hover:text-lilac-300">
-      {title}
-    </h3>
+    <div class="flex min-w-0 items-center gap-2">
+      <h3 class="truncate font-display font-bold text-slate-900 group-hover:text-violet-700 dark:text-white dark:group-hover:text-lilac-300">
+        {title}
+      </h3>
+      {isPrivate && <span class="shrink-0 rounded-full bg-lilac-400/15 px-2 py-0.5 text-[10px] text-violet-700 dark:text-lilac-200">私密</span>}
+    </div>
     {dateStr && <time class="shrink-0 text-sm text-slate-400">{dateStr}</time>}
   </div>
-  <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+  <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
     {description}
   </p>
   {tags.length > 0 && (

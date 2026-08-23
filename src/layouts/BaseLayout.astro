@@ -146,3 +146,37 @@ const {
     document.addEventListener('astro:before-swap', cleanup);
   })();
 </script>
+
+<!-- 静态页面也需要记录来访；通过接口写入共享存储，站内切换时由 page-load 事件补记。 -->
+<script is:inline>
+  (() => {
+    const marker = '__justEmtVisitorTracking';
+    if (Reflect.get(globalThis, marker)) return;
+    Reflect.set(globalThis, marker, true);
+
+    const isTrackablePath = (path) => path.startsWith('/')
+      && !path.startsWith('/api/')
+      && !path.startsWith('/_astro/')
+      && path !== '/login'
+      && path !== '/visitors'
+      && path !== '/gallery/manage'
+      && !path.startsWith('/blog/');
+
+    const recordCurrentPage = () => {
+      const path = window.location.pathname;
+      if (!isTrackablePath(path)) return;
+      void fetch('/api/visitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+        keepalive: true,
+      }).catch(() => {
+        // 统计故障不能影响页面使用。
+      });
+    };
+
+    document.addEventListener('astro:page-load', recordCurrentPage);
+    // 正常情况下由 astro:page-load 覆盖首屏；若脚本在事件之后才执行，再补一次。
+    if (document.readyState === 'complete') recordCurrentPage();
+  })();
+</script>

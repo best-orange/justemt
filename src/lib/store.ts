@@ -30,6 +30,12 @@ export interface Store {
   decr(key: string): Promise<void>;
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlSeconds: number): Promise<void>;
+  /** 仅在键不存在时写入；返回是否写入成功。 */
+  setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean>;
+  /** 在列表头部写入一项，并将列表裁剪到指定长度。 */
+  listPrepend(key: string, value: string, maxItems: number): Promise<void>;
+  /** 读取列表的一段内容。 */
+  listRange(key: string, start: number, end: number): Promise<string[]>;
 }
 
 /* ---------------- 内存实现 ---------------- */
@@ -69,6 +75,41 @@ const memoryStore: Store = {
   },
   async set(key, value, ttlSeconds) {
     mem.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+  },
+  async setIfAbsent(key, value, ttlSeconds) {
+    if (memGet(key) !== null) return false;
+    mem.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+    return true;
+  },
+  async listPrepend(key, value, maxItems) {
+    const existing = memGet(key);
+    let items: string[] = [];
+    if (existing) {
+      try {
+        const parsed = JSON.parse(existing);
+        if (Array.isArray(parsed)) items = parsed.filter((item): item is string => typeof item === 'string');
+      } catch {
+        // 列表内容损坏时从空列表恢复，避免影响访客记录接口。
+      }
+    }
+    items.unshift(value);
+    mem.set(key, {
+      value: JSON.stringify(items.slice(0, Math.max(1, maxItems))),
+      expiresAt: Number.POSITIVE_INFINITY,
+    });
+  },
+  async listRange(key, start, end) {
+    const existing = memGet(key);
+    if (!existing) return [];
+    try {
+      const parsed = JSON.parse(existing);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .slice(start, end < 0 ? undefined : end + 1)
+        .filter((item): item is string => typeof item === 'string');
+    } catch {
+      return [];
+    }
   },
 };
 
@@ -113,6 +154,20 @@ const redisStore: Store = {
   async set(key, value, ttlSeconds) {
     await pipeline([['SET', key, value, 'EX', ttlSeconds]]);
   },
+  async setIfAbsent(key, value, ttlSeconds) {
+    const [result] = await pipeline([['SET', key, value, 'EX', ttlSeconds, 'NX']]);
+    return result === 'OK';
+  },
+  async listPrepend(key, value, maxItems) {
+    await pipeline([
+      ['LPUSH', key, value],
+      ['LTRIM', key, 0, Math.max(0, maxItems - 1)],
+    ]);
+  },
+  async listRange(key, start, end) {
+    const [result] = await pipeline([['LRANGE', key, start, end]]);
+    return Array.isArray(result) ? result.map((item) => String(item)) : [];
+  },
 };
 
 /* ---------------- 选择与降级 ---------------- */
@@ -136,7 +191,7 @@ function guarded(primary: Store, fallback: Store): Store {
         healthy = false;
         if (!warned) {
           warned = true;
-          console.warn('[music] Redis 不可用，暂时回落到内存计数：', err);
+          console.warn('[store] Redis 不可用，暂时回落到内存存储：', err);
         }
         return await (fallback[name] as any)(...args);
       }
@@ -148,6 +203,9 @@ function guarded(primary: Store, fallback: Store): Store {
     decr: wrap('decr'),
     get: wrap('get'),
     set: wrap('set'),
+    setIfAbsent: wrap('setIfAbsent'),
+    listPrepend: wrap('listPrepend'),
+    listRange: wrap('listRange'),
   };
 }
 

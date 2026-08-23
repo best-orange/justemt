@@ -10,22 +10,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           <h1 class="font-display text-4xl font-black tracking-wide">
             <span class="text-frost">画廊</span>
           </h1>
-          <p class="mt-3 text-slate-600 dark:text-slate-400">
+          <p class="mt-3 text-slate-600 dark:text-slate-300">
             冰晶、微光与雪夜。点击任意作品查看大图。
           </p>
         </div>
-        <a href="/gallery/manage" class="hidden rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200 sm:inline-flex">
+        <a href="/gallery/manage" class="hidden rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200 sm:inline-flex">
           管理馆藏
         </a>
       </div>
     </header>
 
     <div class="mt-8 flex min-h-8 flex-wrap items-center gap-2" id="tag-filter" aria-label="画廊标签筛选">
-      <span class="text-sm text-slate-400">载入标签…</span>
+      <span class="text-sm text-slate-400 dark:text-slate-300">载入标签…</span>
     </div>
 
     <div class="masonry mt-8 columns-2 md:columns-3" id="gallery-grid" aria-live="polite"></div>
-    <div id="gallery-sentinel" class="flex min-h-20 items-center justify-center text-sm text-slate-400">
+    <div id="gallery-sentinel" class="flex min-h-20 items-center justify-center text-sm text-slate-300 dark:text-slate-200">
       <span id="gallery-status">正在打开画册…</span>
     </div>
   </section>
@@ -56,8 +56,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <figcaption class="mt-4">
         <p id="lb-title" class="font-display text-lg font-bold text-white"></p>
         <p id="lb-desc" class="mt-1 text-sm text-white/70"></p>
-        <p id="lb-count" class="mt-2 text-xs tracking-widest text-white/40"></p>
-        <a id="lb-original" href="#" target="_blank" rel="noopener" class="mt-1 inline-block text-xs text-white/50 underline-offset-4 transition-colors hover:text-white hover:underline">查看原图</a>
+        <p id="lb-count" class="mt-2 text-xs tracking-widest text-white/60"></p>
+        <a id="lb-original" href="#" target="_blank" rel="noopener" class="mt-1 inline-block text-xs text-white/70 underline-offset-4 transition-colors hover:text-white hover:underline">查看原图</a>
       </figcaption>
     </figure>
   </div>
@@ -246,7 +246,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     document.getElementById('lb-close')?.addEventListener('click', close, { signal });
     document.getElementById('lb-prev')?.addEventListener('click', () => void step(-1), { signal });
     document.getElementById('lb-next')?.addEventListener('click', () => void step(1), { signal });
-    lightbox.addEventListener('click', (event) => { if (event.target === lightbox) close(); }, { signal });
+    lightbox.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target === lightbox) return close();
+
+      // figure 会覆盖灯箱的大部分区域：点击其中的图片或说明文字不关闭，
+      // 点击其余空白区域则视为点击遮罩。
+      if (target.closest('figure') && !target.closest('img, figcaption')) close();
+    }, { signal });
     document.addEventListener('keydown', (event) => {
       if (lightbox.classList.contains('hidden')) return;
       if (event.key === 'Escape') close();

@@ -1,20 +1,22 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BlogPost from '../../layouts/BlogPost.astro';
+import { AUTH_COOKIE, verifyToken } from '../../lib/auth';
 
-export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => !data.draft);
-  return posts.map((post) => ({
-    params: { slug: post.id },
-    props: { post },
-  }));
+export const prerender = false;
+
+const posts = await getCollection('blog', ({ data }) => !data.draft);
+const post = posts.find((item) => item.id === Astro.params.slug);
+
+if (!post) {
+  return Astro.redirect('/blog', 302);
 }
 
-const { post } = Astro.props;
-const { Content } = await render(post);
+if (post.data.private && !verifyToken(Astro.cookies.get(AUTH_COOKIE)?.value)) {
+  return Astro.redirect(`/login?next=${encodeURIComponent(`/blog/${post.id}`)}`, 302);
+}
 
-// 服务端渲染：由中间件校验访问权限
-export const prerender = false;
+const { Content } = await render(post);
 ---
 
 <BlogPost
@@ -23,6 +25,7 @@ export const prerender = false;
   pubDate={post.data.pubDate}
   updatedDate={post.data.updatedDate}
   tags={post.data.tags}
+  isPrivate={post.data.private}
 >
   <Content />
 </BlogPost>

@@ -2,11 +2,13 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Card from '../../components/Card.astro';
+import { AUTH_COOKIE, verifyToken } from '../../lib/auth';
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
+const isAuthenticated = verifyToken(Astro.cookies.get(AUTH_COOKIE)?.value);
+const posts = (await getCollection('blog', ({ data }) => !data.draft && (isAuthenticated || !data.private)))
   .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 
-// 服务端渲染：由中间件校验访问权限
+// 服务端渲染：列表根据文章 private 字段决定是否显示私有文章。
 export const prerender = false;
 ---
 
@@ -16,32 +18,52 @@ export const prerender = false;
       <h1 class="font-display text-3xl font-bold tracking-wide sm:text-4xl">
         <span class="text-frost">冰封阅览室</span>
       </h1>
-      <p class="mt-3 text-slate-600 dark:text-slate-400">只有知道暗号的人才能读到的文字。</p>
+      <p class="mt-3 text-slate-600 dark:text-slate-300">
+        {isAuthenticated ? '公开文章与私密笔记，都在这里安静地等候。' : '公开文章无需暗号；私密笔记会在验证后开放。'}
+      </p>
     </div>
-    <button
-      id="logout-btn"
-      class="shrink-0 rounded-lg border border-lilac-400/30 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:text-violet-700 dark:text-slate-400 dark:hover:text-lilac-200"
-    >
-      重新上锁
-    </button>
+    {isAuthenticated ? (
+      <button
+        id="logout-btn"
+        class="shrink-0 rounded-lg border border-lilac-400/30 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200"
+      >
+        重新上锁
+      </button>
+    ) : (
+      <a
+        href="/login?next=%2Fblog"
+        class="shrink-0 rounded-lg border border-lilac-400/30 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200"
+      >
+        解封私密文章
+      </a>
+    )}
   </header>
 
-  <div class="mt-8 grid gap-4">
-    {posts.map((post) => (
-      <Card
-        title={post.data.title}
-        description={post.data.description}
-        href={`/blog/${post.id}`}
-        date={post.data.pubDate}
-        tags={post.data.tags}
-      />
-    ))}
-  </div>
+  {posts.length > 0 ? (
+    <div class="mt-8 grid gap-4">
+      {posts.map((post) => (
+        <Card
+          title={post.data.title}
+          description={post.data.description}
+          href={`/blog/${post.id}`}
+          date={post.data.pubDate}
+          tags={post.data.tags}
+          isPrivate={post.data.private}
+        />
+      ))}
+    </div>
+  ) : (
+    <p class="mt-8 rounded-2xl border border-dashed border-lilac-400/30 px-5 py-8 text-center text-sm text-slate-500 dark:text-slate-300">
+      暂时没有公开文章，解封后可以查看私密笔记。
+    </p>
+  )}
 </BaseLayout>
 
-<script>
-  document.getElementById('logout-btn')?.addEventListener('click', async () => {
-    await fetch('/api/auth', { method: 'DELETE' });
-    location.href = '/';
-  });
-</script>
+{isAuthenticated && (
+  <script>
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+      await fetch('/api/auth', { method: 'DELETE' });
+      location.href = '/';
+    });
+  </script>
+)}

@@ -80,74 +80,81 @@ body::after {
 .site-footer__inner {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.36);
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
   border-radius: 1.75rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 54%, rgba(183, 157, 250, 0.12)),
-    rgba(247, 246, 253, 0.08);
-  backdrop-filter: blur(14px) saturate(1.15);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05) 54%, rgba(183, 157, 250, 0.08)),
+    rgba(247, 246, 253, 0.04);
+  backdrop-filter: blur(32px) saturate(1.8) brightness(1.06);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.06);
   box-shadow:
-    0 14px 40px rgba(90, 70, 160, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.48),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    0 14px 40px rgba(90, 70, 160, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.7),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8),
+    inset 0 -1px 1px rgba(183, 157, 250, 0.08);
 }
 :where(.dark) .site-footer__inner {
-  border-color: rgba(205, 191, 254, 0.18);
+  border: 0.5px solid rgba(255, 255, 255, 0.28);
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.2), rgba(16, 23, 54, 0.18) 54%, rgba(142, 205, 247, 0.1)),
-    rgba(10, 15, 38, 0.16);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.14), rgba(16, 23, 54, 0.12) 54%, rgba(142, 205, 247, 0.07)),
+    rgba(10, 15, 38, 0.1);
+  backdrop-filter: blur(32px) saturate(1.9) brightness(1.12);
+  -webkit-backdrop-filter: blur(32px) saturate(1.9) brightness(1.12);
   box-shadow:
-    0 16px 46px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+    0 16px 46px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px rgba(205, 191, 254, 0.08);
 }
 
-/* ================= 玻璃拟态 ================= */
+/* ================= 玻璃拟态（iOS 26 风格增强） ================= */
 :root {
   /* 首页轮播歌词卡片作为全站大面板的透明度基准。 */
   --liquid-surface-background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06) 52%, rgba(183, 157, 250, 0.12)),
-    rgba(247, 246, 253, 0.06);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 52%, rgba(183, 157, 250, 0.08)),
+    rgba(247, 246, 253, 0.03);
   --liquid-surface-background-dark:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.12), rgba(16, 23, 54, 0.24) 52%, rgba(142, 205, 247, 0.08)),
-    rgba(10, 15, 38, 0.64);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.08), rgba(16, 23, 54, 0.18) 52%, rgba(142, 205, 247, 0.05)),
+    rgba(10, 15, 38, 0.58);
 }
 
 .glass {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 56%, rgba(183, 157, 250, 0.1)),
-    rgba(247, 246, 253, 0.08);
-  backdrop-filter: blur(16px) saturate(1.35);
-  -webkit-backdrop-filter: blur(16px) saturate(1.35);
-  border: 1px solid rgba(183, 157, 250, 0.24);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.05) 56%, rgba(183, 157, 250, 0.07)),
+    rgba(247, 246, 253, 0.04);
+  backdrop-filter: blur(32px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 8px 32px rgba(90, 70, 160, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    0 8px 32px rgba(90, 70, 160, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 :where(.dark) .glass {
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.16), rgba(16, 23, 54, 0.1) 56%, rgba(142, 205, 247, 0.08)),
-    rgba(10, 15, 38, 0.52);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  border-color: rgba(205, 191, 254, 0.14);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.1), rgba(16, 23, 54, 0.08) 56%, rgba(142, 205, 247, 0.05)),
+    rgba(10, 15, 38, 0.42);
+  backdrop-filter: blur(32px) saturate(1.9) brightness(1.1);
+  -webkit-backdrop-filter: blur(32px) saturate(1.9) brightness(1.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    0 8px 32px rgba(0, 0, 0, 0.24),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.25);
 }
 
-/* 台词卡片的轻量液态玻璃：透出壁纸，同时保留一层流动高光。 */
+/* 台词卡片的轻量液态玻璃：iOS 26 风格，超强透明度和色彩渗透。 */
 .glass--liquid {
   isolation: isolate;
-  border-color: rgba(255, 255, 255, 0.34);
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
   background: var(--liquid-surface-background);
-  backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
+  backdrop-filter: blur(40px) saturate(2) brightness(1.08) contrast(1.03);
+  -webkit-backdrop-filter: blur(40px) saturate(2) brightness(1.08) contrast(1.03);
   box-shadow:
-    0 14px 42px rgba(90, 70, 160, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    0 14px 42px rgba(90, 70, 160, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.7),
+    inset 0 1px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(183, 157, 250, 0.15);
 }
 .glass--liquid::before {
   content: "";
@@ -156,57 +163,74 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(255, 255, 255, 0.34), transparent 58%),
-    linear-gradient(112deg, transparent 34%, rgba(255, 255, 255, 0.1) 50%, transparent 68%);
-  opacity: 0.7;
-  mix-blend-mode: screen;
+    radial-gradient(ellipse 65% 90% at 15% 8%, rgba(255, 255, 255, 0.45), transparent 62%),
+    radial-gradient(ellipse 45% 60% at 85% 92%, rgba(183, 157, 250, 0.18), transparent 58%),
+    linear-gradient(125deg, transparent 30%, rgba(255, 255, 255, 0.15) 48%, rgba(142, 205, 247, 0.12) 52%, transparent 72%);
+  opacity: 0.85;
+  mix-blend-mode: overlay;
+  animation: liquid-shimmer 8s ease-in-out infinite;
 }
 .glass--liquid > * {
   position: relative;
   z-index: 1;
 }
 :where(.dark) .glass--liquid {
-  border-color: rgba(205, 191, 254, 0.2);
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
   background: var(--liquid-surface-background-dark);
-  backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
-  -webkit-backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
+  backdrop-filter: blur(40px) saturate(2.2) brightness(1.15) contrast(1.04);
+  -webkit-backdrop-filter: blur(40px) saturate(2.2) brightness(1.15) contrast(1.04);
   box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+    0 16px 48px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35),
+    inset 0 1px 3px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 2px rgba(205, 191, 254, 0.12);
 }
 :where(.dark) .glass--liquid::before {
   background:
-    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(205, 191, 254, 0.24), transparent 58%),
-    linear-gradient(112deg, transparent 34%, rgba(142, 205, 247, 0.1) 50%, transparent 68%);
-  opacity: 0.72;
+    radial-gradient(ellipse 65% 90% at 15% 8%, rgba(205, 191, 254, 0.3), transparent 62%),
+    radial-gradient(ellipse 45% 60% at 85% 92%, rgba(142, 205, 247, 0.15), transparent 58%),
+    linear-gradient(125deg, transparent 30%, rgba(255, 255, 255, 0.12) 48%, rgba(142, 205, 247, 0.1) 52%, transparent 72%);
+  opacity: 0.9;
 }
 
-/* 普通页面的内容面板：让文字、表单和列表都落在统一的 iOS 风格玻璃里。 */
+@keyframes liquid-shimmer {
+  0%, 100% {
+    opacity: 0.85;
+    transform: translateX(0) scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translateX(2%) scale(1.02);
+  }
+}
+
+/* 普通页面的内容面板：iOS 26 风格统一玻璃材质。 */
 .site-content-surface {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
   border-radius: 2rem;
   padding: clamp(1.25rem, 3.5vw, 3rem);
   background: var(--liquid-surface-background);
-  backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5) contrast(1.02);
+  backdrop-filter: blur(40px) saturate(2) brightness(1.08) contrast(1.03);
+  -webkit-backdrop-filter: blur(40px) saturate(2) brightness(1.08) contrast(1.03);
   box-shadow:
-    0 14px 42px rgba(90, 70, 160, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    0 14px 42px rgba(90, 70, 160, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.7),
+    inset 0 1px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(183, 157, 250, 0.15);
 }
 :where(.dark) .site-content-surface {
-  border-color: rgba(205, 191, 254, 0.2);
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
   background: var(--liquid-surface-background-dark);
-  backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
-  -webkit-backdrop-filter: blur(20px) saturate(1.55) contrast(1.02);
+  backdrop-filter: blur(40px) saturate(2.2) brightness(1.15) contrast(1.04);
+  -webkit-backdrop-filter: blur(40px) saturate(2.2) brightness(1.15) contrast(1.04);
   box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+    0 16px 48px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35),
+    inset 0 1px 3px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 2px rgba(205, 191, 254, 0.12);
 }
 .site-content-surface::before {
   content: "";
@@ -215,10 +239,11 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(255, 255, 255, 0.34), transparent 58%),
-    linear-gradient(112deg, transparent 34%, rgba(255, 255, 255, 0.1) 50%, transparent 68%);
-  opacity: 0.7;
-  mix-blend-mode: screen;
+    radial-gradient(ellipse 65% 90% at 15% 8%, rgba(255, 255, 255, 0.45), transparent 62%),
+    radial-gradient(ellipse 45% 60% at 85% 92%, rgba(183, 157, 250, 0.18), transparent 58%),
+    linear-gradient(125deg, transparent 30%, rgba(255, 255, 255, 0.15) 48%, rgba(142, 205, 247, 0.12) 52%, transparent 72%);
+  opacity: 0.85;
+  mix-blend-mode: overlay;
 }
 .site-content-surface > * {
   position: relative;
@@ -226,9 +251,10 @@ body::after {
 }
 :where(.dark) .site-content-surface::before {
   background:
-    radial-gradient(ellipse 70% 100% at 12% 0%, rgba(205, 191, 254, 0.24), transparent 58%),
-    linear-gradient(112deg, transparent 34%, rgba(142, 205, 247, 0.1) 50%, transparent 68%);
-  opacity: 0.72;
+    radial-gradient(ellipse 65% 90% at 15% 8%, rgba(205, 191, 254, 0.3), transparent 62%),
+    radial-gradient(ellipse 45% 60% at 85% 92%, rgba(142, 205, 247, 0.15), transparent 58%),
+    linear-gradient(125deg, transparent 30%, rgba(255, 255, 255, 0.12) 48%, rgba(142, 205, 247, 0.1) 52%, transparent 72%);
+  opacity: 0.9;
 }
 
 /* 冰晶渐变文字 */
@@ -245,26 +271,27 @@ body::after {
   color: transparent;
 }
 
-/* ================= 液态玻璃导航 ================= */
+/* ================= 液态玻璃导航（iOS 26 风格增强） ================= */
 /*
- * 每个导航项都是独立的取景窗口：backdrop-filter 会采样它后面的壁纸、
- * 内容和渐变色，而不是给整条导航铺一块不透明色带。
+ * 每个导航项都是独立的取景窗口：超强 backdrop-filter 采样背后内容，
+ * 实现 iOS 26 的动态材质响应效果。
  */
 .nav-glass-control {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.46);
+  border: 0.5px solid rgba(255, 255, 255, 0.65);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.12) 52%, rgba(183, 157, 250, 0.16)),
-    rgba(247, 246, 253, 0.12);
-  backdrop-filter: blur(18px) saturate(1.55) contrast(1.04);
-  -webkit-backdrop-filter: blur(18px) saturate(1.55) contrast(1.04);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08) 52%, rgba(183, 157, 250, 0.1)),
+    rgba(247, 246, 253, 0.06);
+  backdrop-filter: blur(28px) saturate(1.85) brightness(1.06) contrast(1.02);
+  -webkit-backdrop-filter: blur(28px) saturate(1.85) brightness(1.06) contrast(1.02);
   box-shadow:
-    0 8px 24px rgba(90, 70, 160, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.64),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+    0 8px 24px rgba(90, 70, 160, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 1px rgba(183, 157, 250, 0.12);
   transition:
     transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 220ms ease,
@@ -281,12 +308,12 @@ body::after {
   background:
     radial-gradient(
       ellipse 90% 140% at var(--nav-light-x, 50%) var(--nav-light-y, 0%),
-      rgba(255, 255, 255, 0.56),
-      rgba(205, 191, 254, 0.12) 36%,
+      rgba(255, 255, 255, 0.7),
+      rgba(205, 191, 254, 0.18) 36%,
       transparent 72%
     );
-  opacity: 0.46;
-  mix-blend-mode: screen;
+  opacity: 0.6;
+  mix-blend-mode: overlay;
   transition: opacity 220ms ease;
 }
 .nav-glass-control::after {
@@ -299,19 +326,23 @@ body::after {
   aspect-ratio: 1;
   border-radius: 999px;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.84) 0 3%, rgba(183, 157, 250, 0.42) 20%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 3%, rgba(183, 157, 250, 0.5) 20%, transparent 70%);
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.25);
 }
 .nav-glass-control:hover {
   transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.85);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.12) 52%, rgba(183, 157, 250, 0.14)),
+    rgba(247, 246, 253, 0.1);
   box-shadow:
-    0 12px 30px rgba(90, 70, 160, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+    0 12px 30px rgba(90, 70, 160, 0.12),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.9),
+    inset 0 1px 3px rgba(255, 255, 255, 1),
+    inset 0 -1px 1px rgba(183, 157, 250, 0.18);
 }
-.nav-glass-control:hover::before { opacity: 0.72; }
+.nav-glass-control:hover::before { opacity: 0.85; }
 .nav-glass-control:active,
 .nav-glass-control.is-pressing {
   transform: scale(0.94);
@@ -333,14 +364,15 @@ body::after {
 .nav-link:hover { color: #2e2848; }
 .nav-link.is-active {
   color: #5f45b5;
-  border-color: rgba(160, 126, 240, 0.5);
+  border-color: rgba(160, 126, 240, 0.6);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(183, 157, 250, 0.24)),
-    rgba(183, 157, 250, 0.14);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(183, 157, 250, 0.28)),
+    rgba(183, 157, 250, 0.16);
   box-shadow:
-    0 8px 26px rgba(112, 80, 196, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    inset 0 -1px 0 rgba(183, 157, 250, 0.18);
+    0 8px 26px rgba(112, 80, 196, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.9),
+    inset 0 1px 2px rgba(255, 255, 255, 1),
+    inset 0 -1px 1px rgba(183, 157, 250, 0.2);
 }
 [data-theme-toggle] { color: #4a4368; }
 #mobile-menu:not(.hidden) {
@@ -348,42 +380,49 @@ body::after {
 }
 .nav-mobile-panel {
   margin-inline: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.38);
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
   border-radius: 1.5rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08)),
-    rgba(247, 246, 253, 0.08);
-  backdrop-filter: blur(22px) saturate(1.45);
-  -webkit-backdrop-filter: blur(22px) saturate(1.45);
-  box-shadow: 0 14px 36px rgba(90, 70, 160, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.48);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05)),
+    rgba(247, 246, 253, 0.04);
+  backdrop-filter: blur(32px) saturate(1.8) brightness(1.06);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.06);
+  box-shadow:
+    0 14px 36px rgba(90, 70, 160, 0.1),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.7),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 .nav-mobile-link { display: block; width: 100%; text-align: left; }
 
 :where(.dark) .nav-glass-control {
-  border-color: rgba(255, 255, 255, 0.24);
+  border: 0.5px solid rgba(255, 255, 255, 0.35);
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.24), rgba(16, 23, 54, 0.2) 52%, rgba(142, 205, 247, 0.14)),
-    rgba(10, 15, 38, 0.18);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.18), rgba(16, 23, 54, 0.14) 52%, rgba(142, 205, 247, 0.1)),
+    rgba(10, 15, 38, 0.12);
+  backdrop-filter: blur(28px) saturate(2) brightness(1.12) contrast(1.02);
+  -webkit-backdrop-filter: blur(28px) saturate(2) brightness(1.12) contrast(1.02);
   box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.32),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.12);
+    0 8px 28px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(205, 191, 254, 0.1);
 }
 :where(.dark) .nav-glass-control::before {
   background:
     radial-gradient(
       ellipse 90% 140% at var(--nav-light-x, 50%) var(--nav-light-y, 0%),
-      rgba(255, 255, 255, 0.34),
-      rgba(142, 205, 247, 0.16) 36%,
+      rgba(255, 255, 255, 0.4),
+      rgba(142, 205, 247, 0.2) 36%,
       transparent 72%
     );
 }
 :where(.dark) .nav-glass-control:hover {
-  border-color: rgba(255, 255, 255, 0.42);
+  border: 0.5px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.46),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.18);
+    0 12px 34px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
+    inset 0 1px 2px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 1px rgba(205, 191, 254, 0.15);
 }
 :where(.dark) .nav-link {
   color: rgba(255, 255, 255, 0.78);
@@ -392,22 +431,28 @@ body::after {
 :where(.dark) .nav-link:hover { color: white; }
 :where(.dark) .nav-link.is-active {
   color: var(--color-lilac-200);
-  border-color: rgba(205, 191, 254, 0.42);
+  border: 0.5px solid rgba(205, 191, 254, 0.5);
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.28), rgba(16, 23, 54, 0.2)),
-    rgba(183, 157, 250, 0.12);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.32), rgba(16, 23, 54, 0.18)),
+    rgba(183, 157, 250, 0.14);
   box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.16);
+    0 8px 30px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px rgba(205, 191, 254, 0.18);
 }
 :where(.dark) [data-theme-toggle] { color: rgba(255, 255, 255, 0.8); }
 :where(.dark) .nav-mobile-panel {
-  border-color: rgba(205, 191, 254, 0.18);
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
   background:
-    linear-gradient(135deg, rgba(26, 34, 71, 0.52), rgba(10, 15, 38, 0.32)),
-    rgba(10, 15, 38, 0.16);
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    linear-gradient(135deg, rgba(26, 34, 71, 0.42), rgba(10, 15, 38, 0.24)),
+    rgba(10, 15, 38, 0.1);
+  backdrop-filter: blur(32px) saturate(1.9) brightness(1.12);
+  -webkit-backdrop-filter: blur(32px) saturate(1.9) brightness(1.12);
+  box-shadow:
+    0 16px 42px rgba(0, 0, 0, 0.26),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 /* 首页/登录页滚出首屏后，只调整按钮取景的明暗，不恢复整条色块。 */
@@ -455,7 +500,7 @@ body::after {
 
 /*
  * 全屏玻璃层：图片始终固定，滚动脚本只更新这些自定义属性。
- * 透明度与 backdrop-filter 同步增强，形成类似 iOS 的半透明、柔化和高光效果。
+ * iOS 26 风格：超强模糊、饱和度和亮度提升，形成更深的景深效果。
  */
 .site-wallpaper__glass {
   position: absolute;
@@ -463,23 +508,42 @@ body::after {
   z-index: 1;
   opacity: var(--site-glass-opacity, 0.035);
   background:
-    radial-gradient(ellipse 70% 45% at 18% 8%, rgba(255, 255, 255, 0.28), transparent 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(247, 246, 253, 0.06) 48%, rgba(10, 15, 38, 0.16));
-  backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1));
-  -webkit-backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1));
+    radial-gradient(ellipse 65% 40% at 18% 8%, rgba(255, 255, 255, 0.35), transparent 68%),
+    radial-gradient(ellipse 50% 35% at 82% 85%, rgba(183, 157, 250, 0.2), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(247, 246, 253, 0.08) 48%, rgba(10, 15, 38, 0.12));
+  backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1)) brightness(1.04);
+  -webkit-backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1)) brightness(1.04);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.26),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
+    inset 0 1px 2px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 1px rgba(183, 157, 250, 0.06);
   transition: opacity 220ms ease;
+}
+
+/* 禁用动画偏好：关闭流光与液态位移，保留静态玻璃材质 */
+@media (prefers-reduced-motion: reduce) {
+  .glass--liquid::before,
+  .site-content-surface::before {
+    animation: none !important;
+  }
+  .music-player,
+  .glass-dark,
+  .music-room__now {
+    will-change: auto;
+  }
 }
 
 :where(.dark) .site-wallpaper__glass {
   background:
-    radial-gradient(ellipse 70% 45% at 18% 8%, rgba(205, 191, 254, 0.2), transparent 64%),
-    linear-gradient(180deg, rgba(16, 23, 54, 0.12), rgba(10, 15, 38, 0.18) 48%, rgba(10, 15, 38, 0.4));
+    radial-gradient(ellipse 65% 40% at 18% 8%, rgba(205, 191, 254, 0.24), transparent 68%),
+    radial-gradient(ellipse 50% 35% at 82% 85%, rgba(142, 205, 247, 0.16), transparent 62%),
+    linear-gradient(180deg, rgba(16, 23, 54, 0.14), rgba(10, 15, 38, 0.2) 48%, rgba(10, 15, 38, 0.36));
+  backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1)) brightness(1.08);
+  -webkit-backdrop-filter: blur(var(--site-glass-blur, 0px)) saturate(var(--site-glass-saturation, 1)) brightness(1.08);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.12);
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
+    inset 0 1px 2px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 1px rgba(205, 191, 254, 0.08);
 }
 
 .hero-bg {
@@ -654,34 +718,55 @@ body::after {
   letter-spacing: 0.28em;
 }
 
+/* ================= SVG 液态玻璃滤镜协作层 =================
+ * 下面三类面板会由 /scripts/liquid-glass-effect.js 叠加 feDisplacementMap。
+ * 为保证“滤镜”效果与视觉材质完美对齐：
+ *  1. 每个面板都是独立合成上下文（isolation: isolate），避免与 backdrop-filter 抢叠；
+ *  2. overflow: hidden 让内部 ::before 高光与位移贴图在同一尺寸内裁剪，不溢出画布；
+ *  3. border-radius 固定，让 SDF 圆角矩形的扰动带与可见边框重合；
+ *  4. 对这三个元素避免 width 动画，确保位移贴图快照与运行时尺寸一致（JS 有 ResizeObserver 兜底）。
+ */
+.music-player,
+.glass-dark,
+.music-room__now {
+  isolation: isolate;
+  will-change: filter;
+  pointer-events: auto;
+}
+
 .music-player {
   width: min(22rem, calc(100vw - 2rem));
   overflow: hidden;
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.42);
+  border: 0.5px solid rgba(255, 255, 255, 0.65);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 54%, rgba(183, 157, 250, 0.14)),
-    rgba(247, 246, 253, 0.1);
-  backdrop-filter: blur(22px) saturate(1.45) contrast(1.03);
-  -webkit-backdrop-filter: blur(22px) saturate(1.45) contrast(1.03);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06) 54%, rgba(183, 157, 250, 0.1)),
+    rgba(247, 246, 253, 0.05);
+  backdrop-filter: blur(36px) saturate(1.9) brightness(1.07) contrast(1.02);
+  -webkit-backdrop-filter: blur(36px) saturate(1.9) brightness(1.07) contrast(1.02);
   box-shadow:
-    0 14px 40px rgba(90, 70, 160, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
-  transition: width 0.25s ease, box-shadow 0.25s ease;
+    0 14px 40px rgba(90, 70, 160, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.75),
+    inset 0 1px 3px rgba(255, 255, 255, 0.85),
+    inset 0 -1px 1px rgba(183, 157, 250, 0.1);
+  /* 丢弃 width 过渡：面板宽度为固定值，动画会让位移贴图短暂错位 */
+  transition: box-shadow 0.25s ease;
 }
 :where(.dark) .music-player {
-  border-color: rgba(205, 191, 254, 0.2);
+  border: 0.5px solid rgba(255, 255, 255, 0.32);
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.22), rgba(16, 23, 54, 0.18) 54%, rgba(142, 205, 247, 0.12)),
-    rgba(10, 15, 38, 0.2);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.16), rgba(16, 23, 54, 0.12) 54%, rgba(142, 205, 247, 0.08)),
+    rgba(10, 15, 38, 0.14);
+  backdrop-filter: blur(36px) saturate(2.1) brightness(1.14) contrast(1.02);
+  -webkit-backdrop-filter: blur(36px) saturate(2.1) brightness(1.14) contrast(1.02);
   box-shadow:
-    0 16px 46px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+    0 16px 46px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.4),
+    inset 0 1px 3px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(205, 191, 254, 0.1);
 }
 .music-player[data-collapsed="false"] {
-  box-shadow: 0 20px 60px rgba(10, 15, 38, 0.28);
+  box-shadow: 0 20px 60px rgba(10, 15, 38, 0.24);
 }
 .music-player__bar {
   min-height: 3.25rem;
@@ -738,18 +823,25 @@ body::after {
 .music-progress--light::-moz-range-track { background: rgba(255, 255, 255, 0.25); }
 
 .glass-dark {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(11, 17, 46, 0.64);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  box-shadow: 0 18px 50px rgba(5, 8, 24, 0.22);
+  position: relative;
+  overflow: hidden;
+  border: 0.5px solid rgba(255, 255, 255, 0.25);
+  /* 圆角与位移贴图的 SDF 圆角矩形对齐，并作为合成上下文承接滤镜 */
+  border-radius: 1.5rem;
+  background: rgba(11, 17, 46, 0.52);
+  backdrop-filter: blur(32px) saturate(1.6) brightness(1.08);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6) brightness(1.08);
+  box-shadow:
+    0 18px 50px rgba(5, 8, 24, 0.18),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.25);
 }
 .music-room__visual {
   position: relative;
   isolation: isolate;
-  background: rgba(11, 17, 46, 0.3);
-  backdrop-filter: blur(20px) saturate(1.15);
-  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  background: rgba(11, 17, 46, 0.24);
+  backdrop-filter: blur(36px) saturate(1.5) brightness(1.08);
+  -webkit-backdrop-filter: blur(36px) saturate(1.5) brightness(1.08);
 }
 .music-room__visual-wash {
   position: absolute;
@@ -783,12 +875,15 @@ body::after {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
-  border: 1px solid rgba(183, 157, 250, 0.28);
+  border: 0.5px solid rgba(183, 157, 250, 0.42);
   border-radius: 999px;
   padding: 0.45rem 0.75rem;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(1.6) brightness(1.05);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6) brightness(1.05);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
   color: #6b6486;
   font-size: 0.64rem;
   font-weight: 700;
@@ -808,11 +903,11 @@ body::after {
   isolation: isolate;
   overflow: hidden;
   background:
-    radial-gradient(circle at 16% 16%, rgba(183, 157, 250, 0.2), transparent 30%),
-    radial-gradient(circle at 84% 78%, rgba(142, 205, 247, 0.16), transparent 34%),
-    rgba(11, 17, 46, 0.2);
-  backdrop-filter: blur(20px) saturate(1.2);
-  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    radial-gradient(circle at 16% 16%, rgba(183, 157, 250, 0.16), transparent 32%),
+    radial-gradient(circle at 84% 78%, rgba(142, 205, 247, 0.12), transparent 36%),
+    rgba(11, 17, 46, 0.16);
+  backdrop-filter: blur(36px) saturate(1.6) brightness(1.1);
+  -webkit-backdrop-filter: blur(36px) saturate(1.6) brightness(1.1);
 }
 .music-room__visual::before {
   content: "";
@@ -823,8 +918,8 @@ body::after {
   width: 30rem;
   height: 30rem;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(183, 157, 250, 0.24), rgba(142, 205, 247, 0.08) 38%, transparent 70%);
-  filter: blur(8px);
+  background: radial-gradient(circle, rgba(183, 157, 250, 0.2), rgba(142, 205, 247, 0.06) 38%, transparent 70%);
+  filter: blur(12px);
   pointer-events: none;
 }
 .music-room__visual::after {
@@ -834,7 +929,8 @@ body::after {
   z-index: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(118deg, rgba(255, 255, 255, 0.1), transparent 34%, rgba(205, 191, 254, 0.06) 68%, transparent);
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.12), transparent 34%, rgba(205, 191, 254, 0.08) 68%, transparent);
+  mix-blend-mode: overlay;
 }
 .music-room__visual-wash {
   background:
@@ -857,16 +953,18 @@ body::after {
   z-index: 1;
   isolation: isolate;
   overflow: hidden;
-  border-color: rgba(255, 255, 255, 0.24);
+  border: 0.5px solid rgba(255, 255, 255, 0.35);
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.2), rgba(16, 23, 54, 0.14) 55%, rgba(142, 205, 247, 0.1)),
-    rgba(10, 15, 38, 0.26);
-  backdrop-filter: blur(24px) saturate(1.35);
-  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.14), rgba(16, 23, 54, 0.1) 55%, rgba(142, 205, 247, 0.07)),
+    rgba(10, 15, 38, 0.18);
+  backdrop-filter: blur(40px) saturate(1.8) brightness(1.12);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) brightness(1.12);
   box-shadow:
-    0 18px 48px rgba(5, 8, 24, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(205, 191, 254, 0.1);
+    0 18px 48px rgba(5, 8, 24, 0.24),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px rgba(205, 191, 254, 0.08);
+  /* 让 ::before 的流光高光也随滤镜位移，模拟真实玻璃折射 */
 }
 .music-room__now::before {
   content: "";
@@ -875,35 +973,46 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 80% 80% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 58%),
-    linear-gradient(112deg, transparent 36%, rgba(142, 205, 247, 0.08) 52%, transparent 70%);
+    radial-gradient(ellipse 75% 75% at 0% 0%, rgba(255, 255, 255, 0.24), transparent 62%),
+    linear-gradient(118deg, transparent 36%, rgba(142, 205, 247, 0.1) 52%, transparent 72%);
+  mix-blend-mode: overlay;
 }
 .music-room__now > * { position: relative; z-index: 1; }
 .music-room__cover-shell {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 24px rgba(5, 8, 24, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  border: 0.5px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 8px 24px rgba(5, 8, 24, 0.18),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
 .room-control {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  border: 0.5px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
   transition: transform 220ms ease, background 220ms ease, border-color 220ms ease;
 }
 .room-control:hover {
   transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.38);
-  background: rgba(255, 255, 255, 0.16);
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.18);
 }
 .room-control:active { transform: scale(0.93); }
 .room-control--main {
-  border-color: rgba(255, 255, 255, 0.68);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(205, 191, 254, 0.8));
+  border: 0.5px solid rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(205, 191, 254, 0.75));
   color: var(--color-night-950);
-  box-shadow: 0 10px 24px rgba(5, 8, 24, 0.26), inset 0 1px 0 white;
+  box-shadow:
+    0 10px 24px rgba(5, 8, 24, 0.22),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 1),
+    inset 0 1px 2px white;
 }
 .room-control--main:hover {
-  background: linear-gradient(135deg, white, rgba(205, 191, 254, 0.92));
+  background: linear-gradient(135deg, white, rgba(205, 191, 254, 0.88));
 }
 .music-room__playlist {
   display: grid;
@@ -915,43 +1024,56 @@ body::after {
   min-height: 3.75rem;
   align-items: center;
   overflow: hidden;
-  border: 1px solid rgba(183, 157, 250, 0.16);
+  border: 0.5px solid rgba(183, 157, 250, 0.25);
   border-radius: 1.25rem;
   padding: 0.75rem 1rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04) 58%, rgba(183, 157, 250, 0.08)),
-    rgba(247, 246, 253, 0.04);
-  backdrop-filter: blur(14px) saturate(1.25);
-  -webkit-backdrop-filter: blur(14px) saturate(1.25);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03) 58%, rgba(183, 157, 250, 0.06)),
+    rgba(247, 246, 253, 0.02);
+  backdrop-filter: blur(24px) saturate(1.5) brightness(1.04);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5) brightness(1.04);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.28),
+    inset 0 1px 1px rgba(255, 255, 255, 0.32);
   color: #5f5878;
   transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
 }
 .room-track > * { position: relative; z-index: 1; }
 .room-track:hover {
   transform: translateX(0.25rem);
-  border-color: rgba(160, 126, 240, 0.36);
+  border: 0.5px solid rgba(160, 126, 240, 0.45);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(183, 157, 250, 0.1)),
-    rgba(247, 246, 253, 0.08);
-  box-shadow: 0 8px 24px rgba(90, 70, 160, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(183, 157, 250, 0.08)),
+    rgba(247, 246, 253, 0.05);
+  box-shadow:
+    0 8px 24px rgba(90, 70, 160, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.45);
 }
 .room-track.is-active {
   color: #7655d2;
-  border-color: rgba(160, 126, 240, 0.46);
+  border: 0.5px solid rgba(160, 126, 240, 0.55);
   background:
-    linear-gradient(135deg, rgba(183, 157, 250, 0.24), rgba(142, 205, 247, 0.1)),
-    rgba(183, 157, 250, 0.08);
-  box-shadow: 0 10px 26px rgba(112, 80, 196, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    linear-gradient(135deg, rgba(183, 157, 250, 0.2), rgba(142, 205, 247, 0.08)),
+    rgba(183, 157, 250, 0.06);
+  box-shadow:
+    0 10px 26px rgba(112, 80, 196, 0.1),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.42),
+    inset 0 1px 2px rgba(255, 255, 255, 0.48);
 }
 .room-track__icon {
   display: grid;
   width: 2rem;
   height: 2rem;
   place-items: center;
-  border: 1px solid rgba(183, 157, 250, 0.2);
+  border: 0.5px solid rgba(183, 157, 250, 0.32);
   border-radius: 999px;
-  background: rgba(183, 157, 250, 0.1);
+  background: rgba(183, 157, 250, 0.08);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
   opacity: 0;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -963,36 +1085,46 @@ body::after {
   padding-left: 0.75rem;
 }
 .music-room__notice {
-  border: 1px solid rgba(183, 157, 250, 0.2);
+  border: 0.5px solid rgba(183, 157, 250, 0.32);
   border-radius: 1rem;
   padding: 0.85rem 1rem;
-  background: rgba(183, 157, 250, 0.06);
+  background: rgba(183, 157, 250, 0.04);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.22);
 }
 :where(.dark) .music-room__status-chip,
 :where(.dark) .music-room__count {
-  border-color: rgba(205, 191, 254, 0.2);
-  background: rgba(16, 23, 54, 0.18);
+  border: 0.5px solid rgba(205, 191, 254, 0.32);
+  background: rgba(16, 23, 54, 0.12);
   color: rgba(227, 219, 254, 0.88);
 }
-:where(.dark) .music-room__now { border-color: rgba(205, 191, 254, 0.2); }
+:where(.dark) .music-room__now { border: 0.5px solid rgba(205, 191, 254, 0.3); }
 :where(.dark) .room-track {
-  border-color: rgba(205, 191, 254, 0.12);
+  border: 0.5px solid rgba(205, 191, 254, 0.2);
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.1), rgba(16, 23, 54, 0.08) 58%, rgba(142, 205, 247, 0.06)),
-    rgba(10, 15, 38, 0.08);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.08), rgba(16, 23, 54, 0.06) 58%, rgba(142, 205, 247, 0.04)),
+    rgba(10, 15, 38, 0.05);
   color: rgba(227, 219, 254, 0.86);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 :where(.dark) .room-track:hover {
-  border-color: rgba(205, 191, 254, 0.28);
+  border: 0.5px solid rgba(205, 191, 254, 0.38);
   background:
-    linear-gradient(135deg, rgba(205, 191, 254, 0.16), rgba(142, 205, 247, 0.08)),
-    rgba(10, 15, 38, 0.14);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    linear-gradient(135deg, rgba(205, 191, 254, 0.12), rgba(142, 205, 247, 0.06)),
+    rgba(10, 15, 38, 0.1);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.16),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.28);
 }
 :where(.dark) .music-room__notice {
-  border-color: rgba(205, 191, 254, 0.16);
-  background: rgba(16, 23, 54, 0.14);
+  border: 0.5px solid rgba(205, 191, 254, 0.25);
+  background: rgba(16, 23, 54, 0.1);
 }
 
 @media (max-width: 640px) {

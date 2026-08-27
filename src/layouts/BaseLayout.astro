@@ -148,12 +148,14 @@ const {
   })();
 </script>
 
-<!-- 静态页面也需要记录来访；通过接口写入共享存储，站内切换时由 page-load 事件补记。 -->
+<!-- 只记录“有人来了”，不记录站内每次翻页：一次浏览会话上报一次入口页面。 -->
 <script is:inline>
   (() => {
     const marker = '__justEmtVisitorTracking';
     if (Reflect.get(globalThis, marker)) return;
     Reflect.set(globalThis, marker, true);
+
+    const SESSION_FLAG = 'justemt:visit-reported';
 
     const isTrackablePath = (path) => path.startsWith('/')
       && !path.startsWith('/api/')
@@ -163,9 +165,29 @@ const {
       && path !== '/gallery/manage'
       && !path.startsWith('/blog/');
 
-    const recordCurrentPage = () => {
+    // 本次浏览会话是否已经上报过；sessionStorage 不可用（隐私模式等）时退回内存标记。
+    let reported = false;
+    const alreadyReported = () => {
+      if (reported) return true;
+      try {
+        return window.sessionStorage.getItem(SESSION_FLAG) === '1';
+      } catch {
+        return false;
+      }
+    };
+    const markReported = () => {
+      reported = true;
+      try {
+        window.sessionStorage.setItem(SESSION_FLAG, '1');
+      } catch {
+        // 无法写入时靠内存标记兜底，服务端还有时间窗口去重。
+      }
+    };
+
+    const recordVisit = () => {
       const path = window.location.pathname;
-      if (!isTrackablePath(path)) return;
+      if (!isTrackablePath(path) || alreadyReported()) return;
+      markReported();
       void fetch('/api/visitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -176,8 +198,8 @@ const {
       });
     };
 
-    document.addEventListener('astro:page-load', recordCurrentPage);
-    // 正常情况下由 astro:page-load 覆盖首屏；若脚本在事件之后才执行，再补一次。
-    if (document.readyState === 'complete') recordCurrentPage();
+    // 入口页面不可记录时（例如从博客进站），等切到可记录页面再补一次。
+    document.addEventListener('astro:page-load', recordVisit);
+    if (document.readyState === 'complete') recordVisit();
   })();
 </script>

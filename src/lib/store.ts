@@ -30,6 +30,8 @@ export interface Store {
   decr(key: string): Promise<void>;
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlSeconds: number): Promise<void>;
+  /** 删除一个键；键不存在时也算成功。 */
+  del(key: string): Promise<void>;
   /** 仅在键不存在时写入；返回是否写入成功。 */
   setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean>;
   /** 在列表头部写入一项，并将列表裁剪到指定长度。 */
@@ -75,6 +77,9 @@ const memoryStore: Store = {
   },
   async set(key, value, ttlSeconds) {
     mem.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+  },
+  async del(key) {
+    mem.delete(key);
   },
   async setIfAbsent(key, value, ttlSeconds) {
     if (memGet(key) !== null) return false;
@@ -154,6 +159,9 @@ const redisStore: Store = {
   async set(key, value, ttlSeconds) {
     await pipeline([['SET', key, value, 'EX', ttlSeconds]]);
   },
+  async del(key) {
+    await pipeline([['DEL', key]]);
+  },
   async setIfAbsent(key, value, ttlSeconds) {
     const [result] = await pipeline([['SET', key, value, 'EX', ttlSeconds, 'NX']]);
     return result === 'OK';
@@ -203,6 +211,7 @@ function guarded(primary: Store, fallback: Store): Store {
     decr: wrap('decr'),
     get: wrap('get'),
     set: wrap('set'),
+    del: wrap('del'),
     setIfAbsent: wrap('setIfAbsent'),
     listPrepend: wrap('listPrepend'),
     listRange: wrap('listRange'),

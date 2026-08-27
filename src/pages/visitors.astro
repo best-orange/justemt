@@ -15,10 +15,46 @@ export const prerender = false;
         </div>
         <div class="flex shrink-0 gap-2">
           <button id="visitor-refresh" type="button" class="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">刷新</button>
+          <button
+            id="visitor-reset-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="visitor-reset-form"
+            class="rounded-full border border-rose-400/30 px-3 py-1.5 text-xs text-rose-500 transition-colors hover:border-rose-400 hover:text-rose-600 dark:text-rose-300 dark:hover:text-rose-200"
+          >重置记录</button>
           <a href="/" class="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">返回大厅</a>
         </div>
       </div>
     </header>
+
+    <form id="visitor-reset-form" class="glass mt-6 hidden rounded-2xl p-5" aria-labelledby="visitor-reset-title">
+      <h2 id="visitor-reset-title" class="font-display text-lg font-bold text-frost">清空最近足迹</h2>
+      <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">
+        只清空下方的足迹列表，累计访客、累计来访次数与今日统计都会保留。清空后无法恢复。
+      </p>
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <label class="sr-only" for="visitor-reset-password">暗号</label>
+        <input
+          id="visitor-reset-password"
+          type="password"
+          name="password"
+          required
+          autocomplete="current-password"
+          placeholder="暗号"
+          class="min-w-[10rem] flex-1 rounded-xl border border-lilac-400/30 bg-white/60 px-4 py-2 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-400 focus:border-lilac-400 dark:bg-white/10 dark:text-slate-100"
+        />
+        <button
+          type="submit"
+          class="rounded-xl bg-gradient-to-r from-rose-500 to-lilac-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-rose-500/20 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+        >确认清空</button>
+        <button
+          id="visitor-reset-cancel"
+          type="button"
+          class="rounded-xl border border-lilac-400/30 px-4 py-2 text-sm text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200"
+        >取消</button>
+      </div>
+      <p id="visitor-reset-message" class="mt-3 hidden text-sm" role="status"></p>
+    </form>
 
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <article class="glass rounded-2xl p-5">
@@ -34,7 +70,7 @@ export const prerender = false;
       <article class="glass rounded-2xl p-5">
         <p class="text-sm text-slate-500 dark:text-slate-300">今日来访次数</p>
         <p id="visitor-today-visits" class="mt-2 font-display text-3xl font-bold text-frost">—</p>
-        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">同一路径 5 分钟内去重</p>
+        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">同一访客 30 分钟内算一次</p>
       </article>
       <article class="glass rounded-2xl p-5">
         <p class="text-sm text-slate-500 dark:text-slate-300">网站运行时间</p>
@@ -102,6 +138,12 @@ export const prerender = false;
     const status = page.querySelector<HTMLElement>('#visitor-status')!;
     const list = page.querySelector<HTMLElement>('#visitor-list')!;
     const refresh = page.querySelector<HTMLButtonElement>('#visitor-refresh')!;
+    const resetToggle = page.querySelector<HTMLButtonElement>('#visitor-reset-toggle')!;
+    const resetForm = page.querySelector<HTMLFormElement>('#visitor-reset-form')!;
+    const resetPassword = page.querySelector<HTMLInputElement>('#visitor-reset-password')!;
+    const resetCancel = page.querySelector<HTMLButtonElement>('#visitor-reset-cancel')!;
+    const resetSubmit = resetForm.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const resetMessage = page.querySelector<HTMLElement>('#visitor-reset-message')!;
     const controller = new AbortController();
     const { signal } = controller;
 
@@ -196,8 +238,63 @@ export const prerender = false;
       }
     }
 
+    const showResetMessage = (text: string, tone: 'ok' | 'error') => {
+      resetMessage.textContent = text;
+      resetMessage.className = tone === 'ok'
+        ? 'mt-3 text-sm text-emerald-600 dark:text-emerald-300'
+        : 'mt-3 text-sm text-rose-500 dark:text-rose-300';
+    };
+
+    const hideResetMessage = () => {
+      resetMessage.textContent = '';
+      resetMessage.className = 'mt-3 hidden text-sm';
+    };
+
+    const toggleResetForm = (open: boolean) => {
+      resetForm.classList.toggle('hidden', !open);
+      resetToggle.setAttribute('aria-expanded', String(open));
+      if (open) {
+        resetPassword.focus();
+      } else {
+        resetForm.reset();
+        hideResetMessage();
+      }
+    };
+
+    async function submitReset(event: SubmitEvent) {
+      event.preventDefault();
+      const password = resetPassword.value;
+      if (!password) return;
+
+      resetSubmit.disabled = true;
+      hideResetMessage();
+      try {
+        const response = await fetch('/api/visitors', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+          signal,
+        });
+        const body = await response.json() as VisitorResponse;
+        if (!response.ok || !body.ok) throw new Error(body.message ?? '清空失败');
+        resetPassword.value = '';
+        showResetMessage('足迹已清空，累计数据保留。', 'ok');
+        await load();
+      } catch (error) {
+        if (signal.aborted) return;
+        showResetMessage(error instanceof Error ? error.message : '网络异常，请稍后再试', 'error');
+      } finally {
+        resetSubmit.disabled = false;
+      }
+    }
+
     page.classList.add('is-visible');
     refresh.addEventListener('click', () => void load(), { signal });
+    resetToggle.addEventListener('click', () => {
+      toggleResetForm(resetForm.classList.contains('hidden'));
+    }, { signal });
+    resetCancel.addEventListener('click', () => toggleResetForm(false), { signal });
+    resetForm.addEventListener('submit', (event) => void submitReset(event), { signal });
     void load();
 
     cleanupVisitorsPage = () => {

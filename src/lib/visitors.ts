@@ -10,7 +10,8 @@ const TOTAL_KEY = 'visitors:total';
 const TOTAL_VISITORS_KEY = 'visitors:unique:total';
 const TOTAL_TTL = 10 * 365 * 24 * 60 * 60;
 const DAY_TTL = 3 * 24 * 60 * 60;
-const VISIT_DEDUPE_TTL = 5 * 60;
+/** 一次来访的时间窗口：同一访客 30 分钟内的连续浏览算作同一次来访 */
+const VISIT_WINDOW_TTL = 30 * 60;
 const RECENT_LIMIT = 100;
 const DEFAULT_SITE_LAUNCHED_AT = '2026-08-19T21:24:14+08:00';
 const VISITOR_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -100,10 +101,6 @@ function visitorKey(visitorId: string): string {
   return hash(`justemt:${visitorId}`).slice(0, 8).toUpperCase();
 }
 
-function pathKey(path: string): string {
-  return hash(path).slice(0, 16);
-}
-
 function dayVisitsKey(day: string): string {
   return `visitors:day:${day}`;
 }
@@ -120,8 +117,9 @@ function allSeenKey(id: string): string {
   return `visitors:seen:all:${id}`;
 }
 
-function dedupeKey(day: string, id: string, path: string): string {
-  return `visitors:dedupe:${day}:${id}:${pathKey(path)}`;
+/** 一次来访的占位键，不含路径：站内翻页不会各记一条 */
+function visitWindowKey(day: string, id: string): string {
+  return `visitors:visit:${day}:${id}`;
 }
 
 function safePath(path: string): string {
@@ -129,17 +127,17 @@ function safePath(path: string): string {
 }
 
 /**
- * 记录一次页面来访。
- * 同一匿名访客在同一路径 5 分钟内刷新不会重复写入，避免浏览器重试制造噪音。
+ * 记录一次来访（而不是每个页面各记一条）。
+ * 同一匿名访客 30 分钟内的连续浏览只写入一条，记录的 path 是这次来访的入口页面。
  */
 export async function recordVisit(input: { visitorId: string; path: string; ip?: string; visitedAt?: Date }): Promise<boolean> {
   const path = safePath(input.path);
   const day = today();
   const storage = store();
   const shouldRecord = await storage.setIfAbsent(
-    dedupeKey(day, input.visitorId, path),
+    visitWindowKey(day, input.visitorId),
     '1',
-    VISIT_DEDUPE_TTL,
+    VISIT_WINDOW_TTL,
   );
   if (!shouldRecord) return false;
 
@@ -207,6 +205,15 @@ function siteRuntime(): { siteStartedAt: string; uptimeSeconds: number } {
     siteStartedAt: new Date(started).toISOString(),
     uptimeSeconds: Math.max(0, Math.floor((Date.now() - started) / 1000)),
   };
+}
+
+/**
+ * 清空最近足迹列表。
+ * 只删记录本身，累计访客 / 累计来访次数 / 今日统计都保留，
+ * 所以重置后计数照旧往上走，只是看不到历史足迹了。
+ */
+export async function resetVisitorRecords(): Promise<void> {
+  await store().del(RECENT_KEY);
 }
 
 export async function visitorStats(): Promise<VisitorStats> {

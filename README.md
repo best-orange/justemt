@@ -1,6 +1,6 @@
 # justEMT
 
-爱蜜莉雅主题站：沉浸式首页、瀑布流画廊、受保护博客和可选音乐播放器。
+爱蜜莉雅主题站：沉浸式首页、瀑布流画廊、AI 对话、受保护博客和可选音乐播放器。
 
 ## 来访雪笺
 
@@ -9,6 +9,31 @@
 “来访”页面右上角的“重置记录”需要输入与博客相同的暗号（`BLOG_PASSWORD`），验证通过后只清空最近足迹列表，累计访客、累计来访次数与今日统计都会保留，所以计数会从原值继续往上走。
 
 记录优先使用 Upstash Redis；未配置 `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` 时会回落到当前实例内存，适合本地开发但不适合多实例生产统计。网站运行时间默认从项目首次提交时间计算，可通过 `SITE_LAUNCHED_AT` 覆盖。
+
+## AI 对话
+
+`/chat` 是公开页面，和爱蜜莉雅聊天。对话内容只存在浏览器 `localStorage` 里，服务端不保存任何消息，`AI_API_KEY` 也只在服务端使用，不会下发到前端。
+
+次数限制是**全站每天合计 N 次**，不是每人 N 次 —— 页面公开，匿名访客无法可靠区分，只能靠总量止损。`AI_DAILY_LIMIT` 默认 30，上限硬顶 100（配得更高也会被钳到 100）；填非法值或 0 会回落到默认值。按北京时间日切，与站点其他统计一致。用完之后登录（同 `BLOG_PASSWORD`）即可继续，登录会话不计次也不受限。
+
+只要求上游兼容 `/chat/completions` 的流式协议，所以 OpenAI、DeepSeek、Moonshot、OpenRouter、自建网关都能用，区别只在 `AI_BASE_URL` 和 `AI_MODEL`：
+
+```dotenv
+AI_API_KEY=
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4o-mini
+# 人物设定，留空用内置的爱蜜莉雅设定
+AI_SYSTEM_PROMPT=
+# 未登录访客每天合计次数，默认 30，最多 100
+AI_DAILY_LIMIT=30
+```
+
+留空 `AI_API_KEY` 时页面只显示「服务尚未连接」，不会发出请求。
+
+两个部署上的注意点：
+
+- 流式响应期间 Vercel 函数一直在跑，`astro.config.mjs` 里的 `maxDuration` 必须大于 `src/lib/chat.ts` 的 `TIMEOUT_MS`（现为 60s > 55s），否则平台先杀掉函数，超时和退还配额的逻辑都来不及执行。Hobby 默认只有 10~15 秒，长回答会被掐断。
+- 计数走共享存储：配了 Upstash Redis 才是全站精确的；没配会回落到进程内存，每个实例各算一份，只是软上限。
 
 ## 博客访问权限
 

@@ -19,7 +19,7 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
  * 它只负责把 Character / Persona / State / Memory 组装成隐藏上下文，
  * 真正的模型调用、登录判断、配额和 SSE 仍交给已经在线上验证的 /api/chat。
  */
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, rewrite }) => {
   let body: { messages?: unknown; context?: unknown };
   try {
     body = await request.json() as { messages?: unknown; context?: unknown };
@@ -45,15 +45,14 @@ export const POST: APIRoute = async ({ request }) => {
     ...recent,
   ];
 
-  const target = new URL('/api/chat', request.url);
   const headers = new Headers({ 'Content-Type': 'application/json' });
   const cookie = request.headers.get('cookie');
   if (cookie) headers.set('cookie', cookie);
 
-  return fetch(target, {
+  return rewrite(new Request(new URL('/api/chat', request.url), {
     method: 'POST',
     headers,
     body: JSON.stringify({ messages: contextualMessages }),
     signal: request.signal,
-  });
+  }));
 };

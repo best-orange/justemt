@@ -1,5 +1,13 @@
 import type { APIRoute } from 'astro';
-import { AUTH_COOKIE, SESSION_MAX_AGE, createToken, verifyPassword } from '../../lib/auth';
+import {
+  AUTH_COOKIE,
+  CHAT_COOKIE,
+  SESSION_MAX_AGE,
+  chatPasswordConfigured,
+  createToken,
+  verifyChatPassword,
+  verifyPassword,
+} from '../../lib/auth';
 
 export const prerender = false;
 
@@ -25,7 +33,7 @@ const json = (data: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
-/** POST /api/auth —— 校验密码，通过后种下签名会话 Cookie */
+/** POST /api/auth —— 校验密码，通过后按命中的暗号种下对应的签名会话 Cookie */
 export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
   if (isRateLimited(clientAddress)) {
     return json({ ok: false, message: '尝试过于频繁，请稍后再试' }, 429);
@@ -38,17 +46,23 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
     return json({ ok: false, message: '请求格式错误' }, 400);
   }
 
-  if (!verifyPassword(body.password)) {
+  // 博客暗号和对话暗号可能被有意配置成同一个值，两个都命中时各发各的会话
+  const grantedBlog = verifyPassword(body.password);
+  const grantedChat = chatPasswordConfigured() && verifyChatPassword(body.password);
+  if (!grantedBlog && !grantedChat) {
     return json({ ok: false, message: '暗号不对哦，再想想？' }, 401);
   }
 
-  cookies.set(AUTH_COOKIE, createToken(), {
+  const sessionCookie = {
     path: '/',
     maxAge: SESSION_MAX_AGE,
     httpOnly: true,
     sameSite: 'lax',
     secure: import.meta.env.PROD,
-  });
+  } as const;
+
+  if (grantedBlog) cookies.set(AUTH_COOKIE, createToken('blog'), sessionCookie);
+  if (grantedChat) cookies.set(CHAT_COOKIE, createToken('chat'), sessionCookie);
 
   return json({ ok: true });
 };
@@ -56,5 +70,6 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
 /** DELETE /api/auth —— 退出登录 */
 export const DELETE: APIRoute = async ({ cookies }) => {
   cookies.delete(AUTH_COOKIE, { path: '/' });
+  cookies.delete(CHAT_COOKIE, { path: '/' });
   return json({ ok: true });
 };

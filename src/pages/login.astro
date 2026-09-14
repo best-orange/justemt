@@ -1,16 +1,20 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Particles from '../components/Particles.astro';
-import { AUTH_COOKIE, verifyToken } from '../lib/auth';
+import { AUTH_COOKIE, CHAT_COOKIE, verifyToken } from '../lib/auth';
+import { hasUnlimitedAccess } from '../lib/chat';
 
 export const prerender = false;
 
-// 已登录：直接放行到目标页
 const next = Astro.url.searchParams.get('next') ?? '/blog';
-if (verifyToken(Astro.cookies.get(AUTH_COOKIE)?.value)) {
-  return Astro.redirect(next.startsWith('/blog') || next === '/gallery/manage' || next === '/visitors' ? next : '/blog');
+const safeNext = next.startsWith('/blog') || ['/gallery/manage', '/visitors', '/chat'].includes(next) ? next : '/blog';
+// 已登录：直接放行到目标页。对话目标按对话自己的规则判断（配了 CHAT_PASSWORD 时博客会话不算数）
+const authenticated = safeNext === '/chat'
+  ? hasUnlimitedAccess(Astro.cookies.get(CHAT_COOKIE)?.value, Astro.cookies.get(AUTH_COOKIE)?.value)
+  : verifyToken(Astro.cookies.get(AUTH_COOKIE)?.value);
+if (authenticated) {
+  return Astro.redirect(safeNext);
 }
-const safeNext = next.startsWith('/blog') || next === '/gallery/manage' || next === '/visitors' ? next : '/blog';
 ---
 
 <BaseLayout immersive title="风铃之间 · justEMT" description="说出暗号，进入冰封的阅览室。">

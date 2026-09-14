@@ -1462,6 +1462,20 @@ body::after {
   font-size: 0.7rem;
   line-height: 1.5;
 }
+.chat__hint-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(160, 126, 240, 0.45);
+  text-underline-offset: 0.2em;
+  transition: color 220ms ease, text-decoration-color 220ms ease;
+}
+.chat__hint-link:hover {
+  color: #5f45b5;
+  text-decoration-color: currentColor;
+}
+:where(.dark) .chat__hint-link:hover {
+  color: #cdbffe;
+}
 .chat__send {
   flex-shrink: 0;
   border: 0.5px solid rgba(255, 255, 255, 0.7);
@@ -1487,6 +1501,7 @@ body::after {
   box-shadow: none;
 }
 .chat__ghost-button:focus-visible,
+.chat__hint-link:focus-visible,
 .chat__suggestion:focus-visible,
 .chat__send:focus-visible,
 .chat__input:focus-visible {

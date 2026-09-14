@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { AUTH_COOKIE, dailyLimit, hasUnlimitedAccess, isConfigured } from '../lib/chat';
+import { AUTH_COOKIE, CHAT_COOKIE, dailyLimit, hasUnlimitedAccess, isConfigured } from '../lib/chat';
 
 export const prerender = false;
 
 const configured = isConfigured();
-const unlimited = hasUnlimitedAccess(Astro.cookies.get(AUTH_COOKIE)?.value);
+const unlimited = hasUnlimitedAccess(Astro.cookies.get(CHAT_COOKIE)?.value, Astro.cookies.get(AUTH_COOKIE)?.value);
 const limit = dailyLimit();
 ---
 
@@ -64,7 +64,11 @@ const limit = dailyLimit();
         ></textarea>
         <div class="chat__composer-actions">
           <p id="chat-hint" class="chat__hint">
-            {unlimited ? '已登录，不限次数。' : `公开对话每天合计 ${limit} 次，登录后不限次。`}
+            {unlimited ? (
+              '已登录，不限次数。'
+            ) : (
+              <>公开对话每天合计 {limit} 次，<a class="chat__hint-link" href={`/login?next=${Astro.url.pathname}`}>登录</a>后不限次。</>
+            )}
           </p>
           <button id="chat-stop" type="button" class="chat__ghost-button hidden">停止</button>
           <button id="chat-send" type="submit" class="chat__send" disabled={!configured}>

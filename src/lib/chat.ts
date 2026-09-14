@@ -8,7 +8,7 @@
  * OpenRouter、各种自建网关都能用，区别只在 AI_BASE_URL 和 AI_MODEL。
  */
 
-import { AUTH_COOKIE, verifyToken } from './auth';
+import { AUTH_COOKIE, CHAT_COOKIE, chatPasswordConfigured, verifyToken } from './auth';
 import { store } from './store';
 
 /** 单条消息长度上限，避免把超长文本整段送去上游 */
@@ -81,18 +81,20 @@ export function isConfigured(): boolean {
 
 /**
  * 登录会话不受每日次数限制。
+ * 单独配置了 CHAT_PASSWORD 时只认对话自己的会话；没配时沿用博客会话。
  * AUTH_SECRET 未配置时 verifyToken 会在生产环境抛错，而对话页是公开的，
  * 那种情况按“未登录”处理即可，不该让整个页面 500。
  */
-export function hasUnlimitedAccess(token: string | undefined): boolean {
+export function hasUnlimitedAccess(chatToken: string | undefined, blogToken: string | undefined): boolean {
   try {
-    return verifyToken(token);
+    if (verifyToken(chatToken, 'chat')) return true;
+    return !chatPasswordConfigured() && verifyToken(blogToken);
   } catch {
     return false;
   }
 }
 
-export { AUTH_COOKIE };
+export { AUTH_COOKIE, CHAT_COOKIE };
 
 export interface ChatMessage {
   role: 'user' | 'assistant';

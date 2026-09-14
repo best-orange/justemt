@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import {
   AUTH_COOKIE,
+  CHAT_COOKIE,
   ChatApiError,
   chatUsage,
   consumeQuota,
@@ -34,7 +35,7 @@ const json = (data: unknown, status = 200) =>
 
 /** GET —— 供页面展示「今日还能聊几次」 */
 export const GET: APIRoute = async ({ cookies }) => {
-  const unlimited = hasUnlimitedAccess(cookies.get(AUTH_COOKIE)?.value);
+  const unlimited = hasUnlimitedAccess(cookies.get(CHAT_COOKIE)?.value, cookies.get(AUTH_COOKIE)?.value);
   try {
     return json({ ok: true, configured: isConfigured(), unlimited, ...(await chatUsage()) });
   } catch (error) {
@@ -60,7 +61,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return json({ ok: false, message: '请先说点什么' }, 400);
   }
 
-  const unlimited = hasUnlimitedAccess(cookies.get(AUTH_COOKIE)?.value);
+  const unlimited = hasUnlimitedAccess(cookies.get(CHAT_COOKIE)?.value, cookies.get(AUTH_COOKIE)?.value);
   // 配额必须在请求上游之前占掉，否则并发下会超发
   if (!unlimited && !(await consumeQuota())) {
     const { limit } = await chatUsage();

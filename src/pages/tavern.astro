@@ -1,0 +1,277 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AUTH_COOKIE, CHAT_COOKIE, dailyLimit, hasUnlimitedAccess, isConfigured } from '../lib/chat';
+
+export const prerender = false;
+
+const configured = isConfigured();
+const unlimited = hasUnlimitedAccess(Astro.cookies.get(CHAT_COOKIE)?.value, Astro.cookies.get(AUTH_COOKIE)?.value);
+const limit = dailyLimit();
+---
+
+<BaseLayout wide title="Emilia · Tavern v1 · justEMT" description="带角色状态与长期记忆接口的 Emilia 对话实验页。">
+  <section data-tavern-page class="chat reveal is-visible" data-configured={configured ? 'true' : 'false'} data-unlimited={unlimited ? 'true' : 'false'}>
+    <header class="chat__intro">
+      <div class="min-w-0">
+        <p class="eyebrow text-lilac-500 dark:text-lilac-300">TAVERN ENGINE · V1</p>
+        <h1 class="mt-4 font-display text-4xl font-black tracking-wide sm:text-5xl">
+          <span class="text-frost">与 Emilia 对话</span>
+        </h1>
+        <p class="mt-4 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300">
+          这一页使用新的角色引擎：Character、Persona、关系状态与长期记忆会在每轮对话前组成上下文。
+          v1 仍把聊天和状态保存在浏览器本地，不把正文写入服务器。
+        </p>
+      </div>
+      <div class="chat__intro-side">
+        <span id="tavern-quota" class="chat__chip" role="status">
+          <span class="chat__chip-dot" aria-hidden="true"></span>
+          {configured ? '正在确认今日次数…' : '服务尚未连接'}
+        </span>
+        <button id="tavern-clear" type="button" class="chat__ghost-button">清空对话</button>
+      </div>
+    </header>
+
+    <div class="chat__shell mt-10">
+      <div id="tavern-thread" class="chat__thread" aria-live="polite" aria-label="对话记录">
+        <div id="tavern-empty" class="chat__empty">
+          <p class="font-display text-2xl font-bold text-frost">欢迎回来。</p>
+          <p class="mt-3 text-sm leading-7 text-slate-500 dark:text-slate-400">
+            这次她不只会看到最近几句话，还会收到当前关系、场景与长期记忆结构。
+          </p>
+          <div class="chat__suggestions">
+            <button type="button" class="chat__suggestion" data-prompt="今天的美术馆好安静，你在做什么？">和她聊聊现在</button>
+            <button type="button" class="chat__suggestion" data-prompt="你还记得我们之前聊过的事情吗？">试试连续性</button>
+            <button type="button" class="chat__suggestion" data-prompt="我有一个 TypeScript 问题想问你。">问技术问题</button>
+          </div>
+        </div>
+      </div>
+
+      <form id="tavern-form" class="chat__composer">
+        <label class="sr-only" for="tavern-input">想说的话</label>
+        <textarea
+          id="tavern-input"
+          rows="1"
+          maxlength="4000"
+          placeholder={configured ? '和 Emilia 说点什么…' : '对话服务尚未开启'}
+          disabled={!configured}
+          class="chat__input"
+        ></textarea>
+        <div class="chat__composer-actions">
+          <p class="chat__hint">
+            {unlimited ? '已登录，不限次数。' : <>公开对话每天合计 {limit} 次；登录后不限次。</>}
+          </p>
+          <button id="tavern-stop" type="button" class="chat__ghost-button hidden">停止</button>
+          <button id="tavern-send" type="submit" class="chat__send" disabled={!configured}>发送</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  type Role = 'user' | 'assistant';
+  type Message = { role: Role; content: string };
+  type TavernContext = {
+    persona?: { name?: string; description?: string; notes?: string[] };
+    state: {
+      relationshipStage: 'stranger' | 'acquaintance' | 'trusted' | 'close';
+      trust: number;
+      affinity: number;
+      mood: string;
+      location?: string;
+      scene?: string;
+      turnCount: number;
+    };
+    memory: { summary: string; facts: string[]; importantEvents: string[] };
+  };
+
+  const HISTORY_KEY = 'justemt:tavern:history';
+  const CONTEXT_KEY = 'justemt:tavern:context';
+  const MAX_MESSAGES = 21;
+  const DEFAULT_CONTEXT: TavernContext = {
+    state: {
+      relationshipStage: 'acquaintance',
+      trust: 20,
+      affinity: 10,
+      mood: '平静、愿意倾听',
+      location: 'justEMT 冰上美术馆',
+      scene: '安静的日常对话',
+      turnCount: 0,
+    },
+    memory: { summary: '', facts: [], importantEvents: [] },
+  };
+
+  const page = document.querySelector<HTMLElement>('[data-tavern-page]');
+  if (page) {
+    const configured = page.dataset.configured === 'true';
+    const unlimited = page.dataset.unlimited === 'true';
+    const thread = page.querySelector<HTMLElement>('#tavern-thread')!;
+    const empty = page.querySelector<HTMLElement>('#tavern-empty')!;
+    const form = page.querySelector<HTMLFormElement>('#tavern-form')!;
+    const input = page.querySelector<HTMLTextAreaElement>('#tavern-input')!;
+    const send = page.querySelector<HTMLButtonElement>('#tavern-send')!;
+    const stop = page.querySelector<HTMLButtonElement>('#tavern-stop')!;
+    const clear = page.querySelector<HTMLButtonElement>('#tavern-clear')!;
+    const quota = page.querySelector<HTMLElement>('#tavern-quota')!;
+    let turn: AbortController | undefined;
+    let messages: Message[] = loadJSON<Message[]>(HISTORY_KEY, []);
+    let context = loadJSON<TavernContext>(CONTEXT_KEY, DEFAULT_CONTEXT);
+
+    function loadJSON<T>(key: string, fallback: T): T {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) as T : structuredClone(fallback);
+      } catch {
+        return structuredClone(fallback);
+      }
+    }
+
+    function save() {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES * 2)));
+      localStorage.setItem(CONTEXT_KEY, JSON.stringify(context));
+    }
+
+    function addBubble(role: Role, text = '') {
+      const row = document.createElement('article');
+      row.className = `chat__row chat__row--${role}`;
+      const label = document.createElement('span');
+      label.className = 'chat__role';
+      label.textContent = role === 'user' ? '你' : 'Emilia';
+      const bubble = document.createElement('div');
+      bubble.className = 'chat__bubble';
+      bubble.style.whiteSpace = 'pre-wrap';
+      bubble.textContent = text;
+      row.append(label, bubble);
+      thread.append(row);
+      thread.scrollTop = thread.scrollHeight;
+      return bubble;
+    }
+
+    function renderAll() {
+      thread.querySelectorAll('.chat__row').forEach((node) => node.remove());
+      empty.classList.toggle('hidden', messages.length > 0);
+      messages.forEach((message) => addBubble(message.role, message.content));
+    }
+
+    function setBusy(busy: boolean) {
+      send.disabled = busy || !configured;
+      stop.classList.toggle('hidden', !busy);
+      input.disabled = busy || !configured;
+    }
+
+    async function refreshQuota() {
+      if (!configured) return;
+      if (unlimited) {
+        quota.append(document.createTextNode(''));
+        quota.lastChild!.textContent = '已登录 · 不限次数';
+        return;
+      }
+      try {
+        const response = await fetch('/api/chat', { cache: 'no-store' });
+        const body = await response.json() as { remaining?: number; limit?: number };
+        quota.textContent = `今日剩余 ${body.remaining ?? 0} / ${body.limit ?? 0} 次`;
+      } catch {
+        quota.textContent = '次数状态未知';
+      }
+    }
+
+    async function submit(raw: string) {
+      if (!configured || turn) return;
+      const content = raw.trim().slice(0, 4000);
+      if (!content) return;
+
+      messages.push({ role: 'user', content });
+      save();
+      empty.classList.add('hidden');
+      addBubble('user', content);
+      const bubble = addBubble('assistant');
+      turn = new AbortController();
+      setBusy(true);
+      input.value = '';
+      let answer = '';
+      let streamError = '';
+
+      try {
+        const response = await fetch('/api/tavern', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: messages.slice(-MAX_MESSAGES), context }),
+          signal: turn.signal,
+        });
+        if (!response.ok || !response.body) {
+          const body = await response.json().catch(() => ({})) as { message?: string };
+          throw new Error(body.message ?? '对话服务暂时不可用');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const chunks = buffer.split('\n\n');
+          buffer = chunks.pop() ?? '';
+          for (const chunk of chunks) {
+            const type = chunk.match(/^event:\s*(.+)$/m)?.[1]?.trim();
+            const rawData = chunk.match(/^data:\s*(.+)$/m)?.[1];
+            if (!type || !rawData) continue;
+            if (type === 'delta') {
+              answer += JSON.parse(rawData) as string;
+              bubble.textContent = answer;
+              thread.scrollTop = thread.scrollHeight;
+            } else if (type === 'error') {
+              streamError = (JSON.parse(rawData) as { message?: string }).message ?? '回答中断';
+            }
+          }
+        }
+
+        if (!answer) throw new Error(streamError || '这次她没有说话');
+        messages.push({ role: 'assistant', content: answer });
+        context.state.turnCount += 1;
+        save();
+        if (streamError) bubble.textContent = `${answer}\n\n（回答中断：${streamError}）`;
+      } catch (error) {
+        if (turn?.signal.aborted && answer) {
+          messages.push({ role: 'assistant', content: answer });
+          context.state.turnCount += 1;
+          save();
+        } else if (turn?.signal.aborted) {
+          bubble.closest('.chat__row')?.remove();
+        } else {
+          bubble.classList.add('chat__bubble--error');
+          bubble.textContent = error instanceof Error ? error.message : '出了点问题';
+        }
+      } finally {
+        turn = undefined;
+        setBusy(false);
+        input.focus();
+        void refreshQuota();
+      }
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void submit(input.value);
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+      event.preventDefault();
+      void submit(input.value);
+    });
+    stop.addEventListener('click', () => turn?.abort());
+    clear.addEventListener('click', () => {
+      turn?.abort();
+      messages = [];
+      context = structuredClone(DEFAULT_CONTEXT);
+      save();
+      renderAll();
+    });
+    page.querySelectorAll<HTMLButtonElement>('.chat__suggestion').forEach((button) => {
+      button.addEventListener('click', () => void submit(button.dataset.prompt ?? ''));
+    });
+
+    renderAll();
+    void refreshQuota();
+  }
+</script>

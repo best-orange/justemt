@@ -36,7 +36,13 @@ export default function ManageScript() {
     const remoteHashes = new Map<string, string>();
     let remoteReady: Promise<void> = Promise.resolve();
 
-    dateInput.value = new Date().toISOString().slice(0, 10);
+    // 用本地时间取日期：UTC 的 toISOString 在 UTC+8 的凌晨会把日期记成前一天
+    const localDateValue = () => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    };
+
+    dateInput.value = localDateValue();
 
     function baseName(name: string) {
       return name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || '未命名作品';
@@ -184,7 +190,7 @@ export default function ManageScript() {
         }
         status.textContent = `已上传 ${files.length} 张图片，画廊将在几秒内更新。`;
         form.reset();
-        dateInput.value = new Date().toISOString().slice(0, 10);
+        dateInput.value = localDateValue();
         await loadRemote();
       } catch (error) {
         status.textContent = error instanceof Error ? error.message : '上传失败';
@@ -210,9 +216,19 @@ export default function ManageScript() {
       remove.addEventListener('click', async () => {
         if (!confirm(`确定删除「${photo.title}」吗？`)) return;
         remove.disabled = true;
-        const response = await fetch(`/api/gallery?id=${encodeURIComponent(photo.id)}`, { method: 'DELETE' });
-        if (response.ok) row.remove();
-        else remove.disabled = false;
+        try {
+          const response = await fetch(`/api/gallery?id=${encodeURIComponent(photo.id)}`, { method: 'DELETE' });
+          if (response.ok) {
+            row.remove();
+            status.textContent = `已删除「${photo.title}」`;
+            return;
+          }
+          const body = await response.json().catch(() => null) as { message?: string } | null;
+          status.textContent = body?.message ?? '删除失败，请稍后再试';
+        } catch {
+          status.textContent = '网络中断了，删除没有完成';
+        }
+        remove.disabled = false;
       });
       row.append(image, title, remove);
       return row;

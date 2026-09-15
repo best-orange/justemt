@@ -33,6 +33,13 @@ export default function MusicRoomScript() {
     const clock = (value: number) => Number.isFinite(value) ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '0:00';
 
     const dispatch = (name: string, detail?: unknown) => window.dispatchEvent(new CustomEvent(name, { detail }));
+    const markActive = (tracks: Track[], activeIndex: number) => {
+      playlist.querySelectorAll<HTMLButtonElement>('.room-track').forEach((button) => {
+        const active = button.dataset.trackId === tracks[activeIndex]?.id;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-current', active ? 'true' : 'false');
+      });
+    };
     const renderPlaylist = (tracks: Track[], activeIndex: number) => {
       playlist.replaceChildren();
       tracks.forEach((track, index) => {
@@ -61,14 +68,13 @@ export default function MusicRoomScript() {
         button.addEventListener('click', () => dispatch('justemt:music:select', { id: track.id, autoplay: true }));
         playlist.append(button);
       });
-      playlist.querySelectorAll<HTMLButtonElement>('.room-track').forEach((button) => {
-        const active = button.dataset.trackId === tracks[activeIndex]?.id;
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-current', active ? 'true' : 'false');
-      });
+      markActive(tracks, activeIndex);
       count.textContent = tracks.length ? `${tracks.length} 首` : '';
       status.textContent = tracks.length ? '固定歌单 · 随时回来继续' : '歌单暂时没有曲目';
     };
+    // 播放进度每秒会让播放器广播多次 state：只在曲目列表真正变化时重建 DOM，
+    // 否则每 250ms 一次 replaceChildren 会让按钮点击偶发丢失、键盘焦点无法停留
+    let renderedSignature = '';
     const onState = (event: Event) => {
       const state = (event as CustomEvent<State>).detail;
       if (!state) return;
@@ -83,7 +89,15 @@ export default function MusicRoomScript() {
           placeholder.classList.add('hidden');
         }
       }
-      if (state.tracks.length) renderPlaylist(state.tracks, state.index);
+      if (state.tracks.length) {
+        const signature = state.tracks.map((track) => track.id).join(',');
+        if (signature !== renderedSignature) {
+          renderedSignature = signature;
+          renderPlaylist(state.tracks, state.index);
+        } else {
+          markActive(state.tracks, state.index);
+        }
+      }
       progress.max = String(state.duration || 0);
       progress.value = String(state.currentTime || 0);
       current.textContent = clock(state.currentTime);

@@ -56,6 +56,7 @@ export default function GalleryClient() {
     let cursor: string | null = '0';
     let activeTag = '*';
     let loading = false;
+    let generation = 0;
     let currentIndex = -1;
     let touchX = 0;
     let touchY = 0;
@@ -127,14 +128,16 @@ export default function GalleryClient() {
     }
 
     async function loadPage(reset = false) {
-      if (loading || (!reset && !cursor)) return;
+      // 非重置加载防重入；重置加载（切换标签）必须能立即发起，并让在途的旧响应作废
+      if (!reset && (loading || !cursor)) return;
+      const requestGeneration = ++generation;
       loading = true;
       status.textContent = photos.length ? '正在展开更多馆藏…' : '正在打开画册…';
       try {
         const query = new URLSearchParams({ limit: '24', tag: activeTag, cursor: reset ? '0' : cursor ?? '0' });
         const response = await fetch(`/api/gallery?${query}`, { signal });
         const body = await response.json() as { ok?: boolean; items?: GalleryPhoto[]; nextCursor?: string | null; tags?: string[]; total?: number; message?: string };
-        if (signal.aborted) return;
+        if (signal.aborted || requestGeneration !== generation) return;
         if (!response.ok || !body.ok) throw new Error(body.message ?? '加载失败');
         if (reset) grid.replaceChildren();
         appendPhotos(body.items ?? []);
@@ -143,11 +146,11 @@ export default function GalleryClient() {
         status.textContent = cursor ? '继续下滑，发现更多微光' : (photos.length ? `共 ${body.total ?? photos.length} 件馆藏` : '画册还没有作品');
         galleryPage.classList.add('is-visible');
       } catch {
-        if (!signal.aborted) {
+        if (!signal.aborted && requestGeneration === generation) {
           status.textContent = photos.length ? '网络有些冷，稍后可继续下滑重试' : '画廊暂时无法打开';
         }
       } finally {
-        loading = false;
+        if (requestGeneration === generation) loading = false;
       }
     }
 
@@ -186,7 +189,10 @@ export default function GalleryClient() {
       if (next < 0) return openAt(photos.length - 1);
       if (next >= photos.length) {
         if (!cursor) return openAt(0);
+        const before = photos.length;
         await loadPage();
+        // 翻页请求提前返回或失败时没有新内容，留在当前张而不是回绕到第 1 张
+        if (photos.length === before) return;
       }
       if (photos.length) openAt((currentIndex + dir + photos.length) % photos.length);
     }

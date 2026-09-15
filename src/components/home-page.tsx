@@ -26,7 +26,8 @@ export default function HomePage({ quotes }: HomePageProps) {
       '我的名字是 Emilia，只是 Emilia。',
       'わたしの名前はエミリア。ただのエミリアよ。',
     ];
-    const tw = page.querySelector<HTMLElement>('#typewriter');
+    // #typewriter 在 hero 区块里，是 #content 的兄弟节点，必须从 document 查
+    const tw = document.getElementById('typewriter');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let typewriterTimer: number | undefined;
     let carouselTimer: number | undefined;
@@ -135,6 +136,8 @@ export default function HomePage({ quotes }: HomePageProps) {
     if (!featuredGrid) return;
 
     const controller = new AbortController();
+    // 用隐藏代替摘除：这个 section 归 React 管理，直接 remove 会在它重渲染时炸 removeChild
+    const hideFeatured = () => document.getElementById('featured-gallery')?.classList.add('hidden');
 
     fetch('/api/gallery?limit=4&tag=*', { signal: controller.signal })
       .then((response) => response.json() as Promise<{ items?: FeaturedPhoto[] }>)
@@ -162,10 +165,10 @@ export default function HomePage({ quotes }: HomePageProps) {
           link.append(image, label);
           featuredGrid.append(link);
         }
-        if (!featuredGrid.children.length) featuredGrid.closest('section')?.remove();
+        if (!featuredGrid.children.length) hideFeatured();
       })
       .catch(() => {
-        if (!controller.signal.aborted) featuredGrid.closest('section')?.remove();
+        if (!controller.signal.aborted) hideFeatured();
       });
 
     return () => controller.abort();

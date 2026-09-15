@@ -22,8 +22,8 @@ export interface Store {
   set(key: string, value: string, ttlSeconds: number): Promise<void>;
   /** 删除一个键；键不存在时也算成功。 */
   del(key: string): Promise<void>;
-  /** 仅在键不存在时写入；返回是否写入成功。 */
-  setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean>;
+  /** 仅在键不存在时写入；传 ttlSeconds 时设置 TTL，不传则永久保存。 */
+  setIfAbsent(key: string, value: string, ttlSeconds?: number): Promise<boolean>;
   /** 值仍与 expected 一致时才删除；用于释放带 token 的分布式锁。 */
   compareAndDelete(key: string, expected: string): Promise<boolean>;
   /** 在列表头部写入一项，并将列表裁剪到指定长度。 */
@@ -78,7 +78,10 @@ const memoryStore: Store = {
   },
   async setIfAbsent(key, value, ttlSeconds) {
     if (memGet(key) !== null) return false;
-    mem.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+    mem.set(key, {
+      value,
+      expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : Number.POSITIVE_INFINITY,
+    });
     return true;
   },
   async compareAndDelete(key, expected) {
@@ -174,7 +177,10 @@ const redisStore: Store = {
     await pipeline([['DEL', key]]);
   },
   async setIfAbsent(key, value, ttlSeconds) {
-    const [result] = await pipeline([['SET', key, value, 'EX', ttlSeconds, 'NX']]);
+    const command: (string | number)[] = ['SET', key, value];
+    if (ttlSeconds) command.push('EX', ttlSeconds);
+    command.push('NX');
+    const [result] = await pipeline([command]);
     return result === 'OK';
   },
   async compareAndDelete(key, expected) {

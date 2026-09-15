@@ -1,4 +1,5 @@
 import {
+  CopyObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -41,6 +42,11 @@ interface GalleryManifest {
   photos: StoredGalleryPhoto[];
 }
 
+interface GalleryManifestSnapshot {
+  value: GalleryManifest;
+  etag?: string;
+}
+
 export interface UploadPlan {
   id: string;
   originalKey: string;
@@ -55,6 +61,7 @@ const MANIFEST_KEY = 'gallery/manifest.json';
 const UPLOAD_TTL_SECONDS = 15 * 60;
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+const MANIFEST_WRITE_RETRIES = 5;
 
 function config() {
   const accountId = env('R2_ACCOUNT_ID')?.trim() || undefined;
@@ -115,64 +122,118 @@ function isMissingObject(error: unknown): boolean {
   return candidate?.name === 'NoSuchKey' || candidate?.$metadata?.httpStatusCode === 404;
 }
 
+function isPreconditionFailed(error: unknown): boolean {
+  const candidate = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+  return candidate?.name === 'PreconditionFailed'
+    || candidate?.$metadata?.httpStatusCode === 409
+    || candidate?.$metadata?.httpStatusCode === 412;
+}
+
 function normalizeSha256(value: string): string {
   const normalized = value.trim().toLowerCase();
   if (!/^[a-f0-9]{64}$/.test(normalized)) throw new Error('图片指纹无效');
   return normalized;
 }
 
-let manifestCache: { value: GalleryManifest; expiresAt: number } | null = null;
+let manifestCache: { snapshot: GalleryManifestSnapshot; expiresAt: number } | null = null;
 
-/** 读取相册清单并在一次函数实例内短暂缓存，降低首页连续请求的 R2 读次数。 */
-export async function readGalleryManifest(force = false): Promise<GalleryManifest> {
-  if (!force && manifestCache && manifestCache.expiresAt > Date.now()) return manifestCache.value;
+async function readGalleryManifestSnapshot(force = false): Promise<GalleryManifestSnapshot> {
+  if (!force && manifestCache && manifestCache.expiresAt > Date.now()) return manifestCache.snapshot;
 
   try {
     const response = await r2Client().send(new GetObjectCommand({ Bucket: bucket(), Key: MANIFEST_KEY }));
     const text = await response.Body?.transformToString();
     const parsed = text ? JSON.parse(text) as Partial<GalleryManifest> : null;
-    const value: GalleryManifest = {
-      version: 1,
-      updatedAt: parsed?.updatedAt ?? new Date(0).toISOString(),
-      photos: Array.isArray(parsed?.photos) ? parsed.photos : [],
+    const snapshot: GalleryManifestSnapshot = {
+      value: {
+        version: 1,
+        updatedAt: parsed?.updatedAt ?? new Date(0).toISOString(),
+        photos: Array.isArray(parsed?.photos) ? parsed.photos : [],
+      },
+      etag: response.ETag,
     };
-    manifestCache = { value, expiresAt: Date.now() + 30_000 };
-    return value;
+    manifestCache = { snapshot, expiresAt: Date.now() + 30_000 };
+    return snapshot;
   } catch (error) {
     if (isMissingObject(error)) {
-      const value: GalleryManifest = { version: 1, updatedAt: new Date(0).toISOString(), photos: [] };
-      manifestCache = { value, expiresAt: Date.now() + 30_000 };
-      return value;
+      const snapshot: GalleryManifestSnapshot = {
+        value: { version: 1, updatedAt: new Date(0).toISOString(), photos: [] },
+      };
+      manifestCache = { snapshot, expiresAt: Date.now() + 30_000 };
+      return snapshot;
     }
     throw error;
   }
 }
 
-/** 覆盖写入 manifest；R2 只保存元数据，图片对象本身仍由 CDN 直接提供。 */
-export async function writeGalleryManifest(photos: StoredGalleryPhoto[]): Promise<void> {
+/** 读取相册清单并在一次函数实例内短暂缓存，降低首页连续请求的 R2 读次数。 */
+export async function readGalleryManifest(force = false): Promise<GalleryManifest> {
+  return (await readGalleryManifestSnapshot(force)).value;
+}
+
+/**
+ * 条件覆盖 manifest：
+ * - 已存在时要求 ETag 与读取时一致（If-Match）
+ * - 首次创建时要求对象仍不存在（If-None-Match: *）
+ *
+ * 这使多 Vercel 实例同时提交/删除时不会发生“最后一次覆盖把前一次改动吃掉”的 lost update。
+ */
+async function writeGalleryManifest(photos: StoredGalleryPhoto[], expectedEtag?: string): Promise<void> {
   const manifest: GalleryManifest = {
     version: 1,
     updatedAt: new Date().toISOString(),
     photos,
   };
-  await r2Client().send(new PutObjectCommand({
+  const response = await r2Client().send(new PutObjectCommand({
     Bucket: bucket(),
     Key: MANIFEST_KEY,
     Body: JSON.stringify(manifest),
     ContentType: 'application/json; charset=utf-8',
     CacheControl: 'no-store',
+    ...(expectedEtag ? { IfMatch: expectedEtag } : { IfNoneMatch: '*' }),
   }));
-  manifestCache = { value: manifest, expiresAt: Date.now() + 30_000 };
+  manifestCache = {
+    snapshot: { value: manifest, etag: response.ETag },
+    expiresAt: Date.now() + 30_000,
+  };
+}
+
+async function mutateGalleryManifest<T>(
+  mutate: (current: GalleryManifest) => { photos: StoredGalleryPhoto[]; result: T },
+): Promise<T> {
+  for (let attempt = 0; attempt < MANIFEST_WRITE_RETRIES; attempt += 1) {
+    const snapshot = await readGalleryManifestSnapshot(true);
+    const next = mutate(snapshot.value);
+    try {
+      await writeGalleryManifest(next.photos, snapshot.etag);
+      return next.result;
+    } catch (error) {
+      if (isPreconditionFailed(error) && attempt + 1 < MANIFEST_WRITE_RETRIES) continue;
+      if (isPreconditionFailed(error)) throw new Error('馆藏正在被其他操作更新，请稍后重试');
+      throw error;
+    }
+  }
+  throw new Error('馆藏正在被其他操作更新，请稍后重试');
 }
 
 async function deleteGalleryObjects(keys: string[]): Promise<void> {
+  if (!keys.length) return;
   await r2Client().send(new DeleteObjectsCommand({
     Bucket: bucket(),
     Delete: { Objects: keys.map((Key) => ({ Key })) },
   }));
 }
 
-/** 根据原图文件名生成三个资源 key，并签发短时直传 URL。 */
+async function copyGalleryObject(sourceKey: string, destinationKey: string): Promise<void> {
+  await r2Client().send(new CopyObjectCommand({
+    Bucket: bucket(),
+    Key: destinationKey,
+    CopySource: `${bucket()}/${sourceKey}`,
+    MetadataDirective: 'COPY',
+  }));
+}
+
+/** 根据原图文件名生成三个 staging key，并签发短时直传 URL。 */
 export async function createGalleryUploadPlan(fileName: string, contentType: string, sha256: string): Promise<UploadPlan> {
   if (!ALLOWED_TYPES.has(contentType)) throw new Error('仅支持 JPG、PNG、WebP 或 AVIF 图片');
   const normalizedSha256 = normalizeSha256(sha256);
@@ -181,9 +242,11 @@ export async function createGalleryUploadPlan(fileName: string, contentType: str
   if (duplicate) throw new Error(`图片已存在于远程馆藏：「${duplicate.title}」`);
   const id = randomUUID();
   const ext = extensionFor(contentType, fileName);
-  const originalKey = `gallery/originals/${id}.${ext}`;
-  const previewKey = `gallery/previews/${id}.webp`;
-  const thumbnailKey = `gallery/thumbnails/${id}.webp`;
+  // staging 与正式对象分离：若浏览器拿到 presign 后关闭页面，只会留下 staging 对象。
+  // 生产环境应给 gallery/staging/ 配 R2 生命周期规则（例如 1 天后删除）。
+  const originalKey = `gallery/staging/${id}/original.${ext}`;
+  const previewKey = `gallery/staging/${id}/preview.webp`;
+  const thumbnailKey = `gallery/staging/${id}/thumbnail.webp`;
   const makeUrl = (key: string, type: string) => getSignedUrl(
     r2Client(),
     new PutObjectCommand({
@@ -211,7 +274,7 @@ async function hashGalleryObject(key: string): Promise<string> {
   return digest.digest('hex');
 }
 
-/** 校验直传对象确实存在和完整，再把元数据写入相册清单。 */
+/** 校验直传 staging 对象确实存在和完整，再复制为正式对象并登记 manifest。 */
 export async function commitGalleryPhoto(input: {
   id: string;
   originalKey: string;
@@ -233,57 +296,97 @@ export async function commitGalleryPhoto(input: {
   }
   if (input.size > MAX_UPLOAD_BYTES) throw new Error('单张图片不能超过 25 MB');
   const normalizedSha256 = normalizeSha256(input.sha256);
-  if (!input.originalKey.startsWith(`gallery/originals/${input.id}.`)
-    || input.previewKey !== `gallery/previews/${input.id}.webp`
-    || input.thumbnailKey !== `gallery/thumbnails/${input.id}.webp`) {
+  const escapedId = input.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const originalMatch = input.originalKey.match(new RegExp(`^gallery/staging/${escapedId}/original\\.(jpg|png|webp|avif)$`, 'i'));
+  if (!originalMatch
+    || input.previewKey !== `gallery/staging/${input.id}/preview.webp`
+    || input.thumbnailKey !== `gallery/staging/${input.id}/thumbnail.webp`) {
     throw new Error('上传对象路径无效');
   }
-  const keys = [input.originalKey, input.previewKey, input.thumbnailKey];
-  const heads = await Promise.all(keys.map((Key) => r2Client().send(new HeadObjectCommand({ Bucket: bucket(), Key }))));
+
+  const stagingKeys = [input.originalKey, input.previewKey, input.thumbnailKey];
+  const heads = await Promise.all(stagingKeys.map((Key) => r2Client().send(new HeadObjectCommand({ Bucket: bucket(), Key }))));
   const originalSize = Number(heads[0].ContentLength ?? 0);
   if (!originalSize || originalSize > MAX_UPLOAD_BYTES) throw new Error('原图不存在或超过 25 MB');
   if (originalSize !== input.size) {
-    await deleteGalleryObjects(keys);
+    await deleteGalleryObjects(stagingKeys);
     throw new Error('图片大小校验失败，请重新选择后上传');
   }
   if (await hashGalleryObject(input.originalKey) !== normalizedSha256) {
-    await deleteGalleryObjects(keys);
+    await deleteGalleryObjects(stagingKeys);
     throw new Error('图片内容校验失败，请重新选择后上传');
   }
 
-  const current = await readGalleryManifest(true);
-  const duplicate = current.photos.find((photo) => photo.sha256?.toLowerCase() === normalizedSha256);
-  if (duplicate) {
-    await deleteGalleryObjects(keys);
-    throw new Error(`图片已存在于远程馆藏：「${duplicate.title}」`);
+  const ext = originalMatch[1].toLowerCase();
+  const finalKeys = [
+    `gallery/originals/${input.id}.${ext}`,
+    `gallery/previews/${input.id}.webp`,
+    `gallery/thumbnails/${input.id}.webp`,
+  ];
+
+  // 先复制为正式 key；若后续 manifest CAS 失败会清理正式副本，staging 仍可用于重试。
+  try {
+    await Promise.all(stagingKeys.map((key, index) => copyGalleryObject(key, finalKeys[index])));
+  } catch (error) {
+    await deleteGalleryObjects(finalKeys).catch(() => undefined);
+    throw error;
   }
-  if (current.photos.some((photo) => photo.id === input.id)) throw new Error('这张图片已经登记过了');
-  const photo: StoredGalleryPhoto = {
-    id: input.id,
-    title: input.title.trim().slice(0, 120) || '未命名作品',
-    description: input.description?.trim().slice(0, 500) || undefined,
-    date: /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : new Date().toISOString().slice(0, 10),
-    tags: [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 12),
-    width: Math.round(input.width),
-    height: Math.round(input.height),
-    size: originalSize,
-    sha256: normalizedSha256,
-    originalKey: input.originalKey,
-    previewKey: input.previewKey,
-    thumbnailKey: input.thumbnailKey,
-    uploadedAt: new Date().toISOString(),
-  };
-  await writeGalleryManifest([photo, ...current.photos]);
-  return toPublicGalleryPhoto(photo);
+
+  let stored: StoredGalleryPhoto;
+  try {
+    stored = await mutateGalleryManifest((current) => {
+      const duplicate = current.photos.find((photo) => photo.sha256?.toLowerCase() === normalizedSha256);
+      if (duplicate) throw new Error(`图片已存在于远程馆藏：「${duplicate.title}」`);
+      if (current.photos.some((photo) => photo.id === input.id)) throw new Error('这张图片已经登记过了');
+
+      const photo: StoredGalleryPhoto = {
+        id: input.id,
+        title: input.title.trim().slice(0, 120) || '未命名作品',
+        description: input.description?.trim().slice(0, 500) || undefined,
+        date: /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : new Date().toISOString().slice(0, 10),
+        tags: [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 12),
+        width: Math.round(input.width),
+        height: Math.round(input.height),
+        size: originalSize,
+        sha256: normalizedSha256,
+        originalKey: finalKeys[0],
+        previewKey: finalKeys[1],
+        thumbnailKey: finalKeys[2],
+        uploadedAt: new Date().toISOString(),
+      };
+      return { photos: [photo, ...current.photos], result: photo };
+    });
+  } catch (error) {
+    await deleteGalleryObjects(finalKeys).catch(() => undefined);
+    if (error instanceof Error && error.message.includes('已存在于远程馆藏')) {
+      await deleteGalleryObjects(stagingKeys).catch(() => undefined);
+    }
+    throw error;
+  }
+
+  // 登记成功后 staging 已无用途；删除失败不影响正式馆藏，生命周期规则会兜底清理。
+  await deleteGalleryObjects(stagingKeys).catch((error) => {
+    console.warn('[gallery] staging cleanup failed:', error);
+  });
+  return toPublicGalleryPhoto(stored);
 }
 
 /** 删除远程相册条目及其三个派生对象。 */
 export async function deleteGalleryPhoto(id: string): Promise<boolean> {
-  const current = await readGalleryManifest(true);
-  const photo = current.photos.find((item) => item.id === id);
+  const photo = await mutateGalleryManifest((current) => {
+    const hit = current.photos.find((item) => item.id === id);
+    if (!hit) return { photos: current.photos, result: null as StoredGalleryPhoto | null };
+    return {
+      photos: current.photos.filter((item) => item.id !== id),
+      result: hit,
+    };
+  });
   if (!photo) return false;
-  await writeGalleryManifest(current.photos.filter((item) => item.id !== id));
-  await deleteGalleryObjects([photo.originalKey, photo.previewKey, photo.thumbnailKey]);
+
+  // manifest 已经不再引用这些对象；即使对象删除暂时失败，也不会破坏馆藏一致性。
+  await deleteGalleryObjects([photo.originalKey, photo.previewKey, photo.thumbnailKey]).catch((error) => {
+    console.warn('[gallery] orphan cleanup after delete failed:', error);
+  });
   return true;
 }
 

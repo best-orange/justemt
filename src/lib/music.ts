@@ -6,22 +6,23 @@
  * 一旦出现在前端源码里，任何人都能扒走刷爆配额。
  */
 
+import { env } from './env';
 import { DAILY_LIMIT, refund, tryConsume } from './quota';
 
 const API_BASE = 'https://api.chksz.com/api';
 /** 请求超时，避免上游卡死拖垮 Vercel 函数 */
 const TIMEOUT_MS = 10_000;
 
-const apiKey = () => import.meta.env.MUSIC_API_KEY as string | undefined;
+const apiKey = () => env('MUSIC_API_KEY');
 
 /** 网易云歌单 ID；播放器的曲目来源 */
-export const playlistId = () => import.meta.env.MUSIC_PLAYLIST_ID as string | undefined;
+export const playlistId = () => env('MUSIC_PLAYLIST_ID');
 
 /**
  * 音质等级。默认 exhigh（320k）而不是文档里的 jymaster：
  * 母带文件动辄上百 MB，移动端流量和加载都吃不消。
  */
-const level = () => (import.meta.env.MUSIC_LEVEL as string | undefined) ?? 'exhigh';
+const level = () => env('MUSIC_LEVEL') ?? 'exhigh';
 
 export type Track = {
   id: string;

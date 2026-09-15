@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { env } from './env';
 import { store, storeStatus } from './store';
 
 /** 浏览器匿名标识的 Cookie 名称；IP 只保存脱敏后的展示值。 */
@@ -46,7 +47,7 @@ export function isValidVisitorId(value: string | undefined): value is string {
 export function isTrackablePath(path: string): boolean {
   return path.startsWith('/')
     && !path.startsWith('/api/')
-    && !path.startsWith('/_astro/')
+    && !path.startsWith('/_next/')
     && path !== '/login'
     && path !== '/visitors'
     && path !== '/gallery/manage'
@@ -65,7 +66,7 @@ export function maskIp(address: string | undefined): string {
   if (embeddedIpv4) {
     const octets = embeddedIpv4.split('.');
     if (octets.every((octet) => Number(octet) >= 0 && Number(octet) <= 255)) {
-      return `${value.slice(0, -embeddedIpv4.length)}${octets[0]}.${octets[1]}.*.*`;
+      return `${octets[0]}.${octets[1]}.*.*`;
     }
   }
 
@@ -187,13 +188,6 @@ function parseRecord(raw: string): VisitorRecord | null {
   } catch {
     return null;
   }
-}
-
-function env(name: string): string | undefined {
-  return (
-    (typeof process !== 'undefined' ? process.env?.[name] : undefined) ??
-    (import.meta.env as Record<string, string | undefined>)[name]
-  );
 }
 
 function siteRuntime(): { siteStartedAt: string; uptimeSeconds: number } {

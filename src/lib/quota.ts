@@ -6,10 +6,11 @@
  * - 没配 → 回落到进程内存，每实例各计各的，只是软上限
  */
 
+import { env } from './env';
 import { store, storeStatus } from './store';
 
 /** 每日上限，可用 MUSIC_DAILY_LIMIT 覆盖 */
-export const DAILY_LIMIT = Number(import.meta.env.MUSIC_DAILY_LIMIT ?? 390);
+export const DAILY_LIMIT = Number(env('MUSIC_DAILY_LIMIT') ?? 390);
 
 /** 计数键留够两天再过期，日切靠键名本身完成 */
 const KEY_TTL = 48 * 60 * 60;

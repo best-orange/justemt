@@ -7,17 +7,7 @@
  * 直接打 Upstash 的 REST API，不引 @upstash/redis，省一个依赖。
  */
 
-/**
- * 运行时优先读 process.env：
- * import.meta.env 在构建时就被内联了，而 Upstash 集成注入的变量
- * 可能在构建之后才变化，读 process.env 才能拿到最新值。
- */
-function env(name: string): string | undefined {
-  return (
-    (typeof process !== 'undefined' ? process.env?.[name] : undefined) ??
-    (import.meta.env as Record<string, string | undefined>)[name]
-  );
-}
+import { env } from './env';
 
 // Vercel 的 Upstash 集成会注入 UPSTASH_* ；早期 Vercel KV 用的是 KV_* ，两种都认
 const restUrl = () => env('UPSTASH_REDIS_REST_URL') ?? env('KV_REST_API_URL');

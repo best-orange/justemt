@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { env } from './env';
 
 export const AUTH_COOKIE = 'emt_auth';
 /** 对话登录的独立会话 Cookie；CHAT_PASSWORD 未配置时对话沿用 AUTH_COOKIE */
@@ -11,10 +12,10 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 type Purpose = 'blog' | 'chat';
 
 const secret = (): string => {
-  const value = import.meta.env.AUTH_SECRET as string | undefined;
+  const value = env('AUTH_SECRET');
   if (value) return value;
   // 生产环境缺失时必须显式失败：兜底值会随源码公开，等于没有密钥
-  if (import.meta.env.PROD) {
+  if (process.env.NODE_ENV === 'production') {
     throw new Error('AUTH_SECRET 未配置：生产环境禁止使用内置兜底密钥，请在部署平台设置该环境变量');
   }
   return 'just-emt-dev-secret';
@@ -44,26 +45,16 @@ export function verifyToken(token: string | undefined, purpose: Purpose = 'blog'
 
 /** 校验访问密码（常量时间比较） */
 export function verifyPassword(input: unknown): boolean {
-  const password = import.meta.env.BLOG_PASSWORD;
+  const password = env('BLOG_PASSWORD');
   if (typeof input !== 'string' || !password) return false;
   const a = Buffer.from(input);
   const b = Buffer.from(password);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/**
- * 对话的独立登录暗号。未配置时对话回落到博客会话（见 lib/chat.ts 的 hasUnlimitedAccess）。
- * 运行时优先读 process.env：import.meta.env 在构建时就被内联了，
- * 部署平台后来改的值只有 process.env 能拿到。
- */
-const chatPassword = (): string | undefined => {
-  const value =
-    (typeof process !== 'undefined' ? process.env?.CHAT_PASSWORD : undefined) ??
-    (import.meta.env as Record<string, string | undefined>).CHAT_PASSWORD;
-  return value?.trim() || undefined;
-};
-
 /** 是否单独配置了 CHAT_PASSWORD —— 决定对话认独立会话还是沿用博客会话 */
+const chatPassword = (): string | undefined => env('CHAT_PASSWORD')?.trim() || undefined;
+
 export const chatPasswordConfigured = (): boolean => Boolean(chatPassword());
 
 /** 校验对话暗号（常量时间比较）；只认 CHAT_PASSWORD，不回落博客暗号 */

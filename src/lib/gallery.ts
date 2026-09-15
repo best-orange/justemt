@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash, randomUUID } from 'node:crypto';
+import { env } from './env';
 
 /** R2 中保存的相册条目；manifest 本身不暴露访问凭据。 */
 export interface StoredGalleryPhoto {
@@ -55,19 +56,12 @@ const UPLOAD_TTL_SECONDS = 15 * 60;
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
-function env(name: string): string | undefined {
-  return (
-    (typeof process !== 'undefined' ? process.env?.[name] : undefined) ??
-    (import.meta.env as Record<string, string | undefined>)[name]
-  )?.trim() || undefined;
-}
-
 function config() {
-  const accountId = env('R2_ACCOUNT_ID');
-  const accessKeyId = env('R2_ACCESS_KEY_ID');
-  const secretAccessKey = env('R2_SECRET_ACCESS_KEY');
-  const bucket = env('R2_BUCKET');
-  const publicUrl = env('R2_PUBLIC_URL')?.replace(/\/$/, '');
+  const accountId = env('R2_ACCOUNT_ID')?.trim() || undefined;
+  const accessKeyId = env('R2_ACCESS_KEY_ID')?.trim() || undefined;
+  const secretAccessKey = env('R2_SECRET_ACCESS_KEY')?.trim() || undefined;
+  const bucket = env('R2_BUCKET')?.trim() || undefined;
+  const publicUrl = env('R2_PUBLIC_URL')?.trim().replace(/\/$/, '');
   if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) return null;
   return { accountId, accessKeyId, secretAccessKey, bucket, publicUrl };
 }

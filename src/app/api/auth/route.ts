@@ -8,13 +8,10 @@ import {
   verifyChatPassword,
   verifyPassword,
 } from '@/lib/auth';
-import { createRateLimiter } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/request-ip';
+import { checkSharedRateLimit } from '@/lib/shared-rate-limit';
 
 export const maxDuration = 60;
-
-/** 登录有效期内的简易限流：每 IP 每分钟最多 10 次尝试 */
-const isRateLimited = createRateLimiter({ windowMs: 60_000, max: 10 });
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -63,8 +60,18 @@ async function handleFormSubmit(request: Request): Promise<Response> {
 
 /** POST /api/auth —— 校验密码，通过后按命中的暗号种下对应的签名会话 Cookie */
 export async function POST(request: Request) {
-  if (isRateLimited(clientIp(request))) {
-    return json({ ok: false, message: '尝试过于频繁，请稍后再试' }, 429);
+  const rate = await checkSharedRateLimit({
+    scope: 'auth-login',
+    identifier: clientIp(request),
+    windowSeconds: 60,
+    max: 10,
+    // 已经配置 Redis 却发生故障时，登录防爆破不能静默降级成单实例 Map。
+    strictWhenRedisConfigured: true,
+  });
+  if (rate.limited) {
+    return rate.degraded
+      ? json({ ok: false, message: '验证服务暂时不可用，请稍后再试' }, 503)
+      : json({ ok: false, message: '尝试过于频繁，请稍后再试' }, 429);
   }
 
   const contentType = request.headers.get('content-type') ?? '';

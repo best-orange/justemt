@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { verifyPassword } from '@/lib/auth';
+import { createRateLimiter } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/request-ip';
 import {
   createVisitorId,
@@ -15,20 +16,9 @@ import {
 export const maxDuration = 30;
 
 /** 重置接口的简易限流：每 IP 每分钟最多 5 次尝试，防止在线爆破 */
-const resetAttempts = new Map<string, { count: number; resetAt: number }>();
-const RESET_WINDOW_MS = 60_000;
-const RESET_MAX_ATTEMPTS = 5;
-
-function isResetRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = resetAttempts.get(ip);
-  if (!entry || now > entry.resetAt) {
-    resetAttempts.set(ip, { count: 1, resetAt: now + RESET_WINDOW_MS });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > RESET_MAX_ATTEMPTS;
-}
+const isResetRateLimited = createRateLimiter({ windowMs: 60_000, max: 5 });
+/** 上报接口的限流：正常访客每个浏览会话只上报一次；压住伪造新身份刷数字的速度 */
+const isPostRateLimited = createRateLimiter({ windowMs: 60_000, max: 20 });
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -50,6 +40,10 @@ export async function GET() {
 
 /** POST /api/visitors —— 浏览器记录一次公开页面来访。 */
 export async function POST(request: Request) {
+  if (isPostRateLimited(clientIp(request))) {
+    return json({ ok: false, message: '操作过于频繁，请稍后再试' }, 429);
+  }
+
   let body: { path?: unknown };
   try {
     body = await request.json() as { path?: unknown };

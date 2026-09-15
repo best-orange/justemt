@@ -8,3 +8,13 @@ export function env(name: string): string | undefined {
   const runtime = process.env as Record<string, string | undefined>;
   return runtime[name];
 }
+
+/**
+ * 读取正数数值型环境变量；缺失或非法（空串 / NaN / 0 / 负数）时返回兜底值。
+ * 用于配错一个值就会静默失效或全量拦截的场景（限额、TTL 等）。
+ */
+export function envPositiveNumber(name: string, fallback: number): number {
+  const raw = env(name)?.trim();
+  const value = raw ? Number(raw) : Number.NaN;
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}

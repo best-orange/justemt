@@ -15,6 +15,12 @@ const TIMEOUT_MS = 10_000;
 
 const apiKey = () => env('MUSIC_API_KEY');
 
+/** 上游报错里若回显了 apikey，打码后再对外展示 */
+const redact = (text: string) => {
+  const key = apiKey();
+  return key ? text.split(key).join('[已隐藏]') : text;
+};
+
 /** 网易云歌单 ID；播放器的曲目来源 */
 export const playlistId = () => env('MUSIC_PLAYLIST_ID');
 
@@ -47,7 +53,8 @@ async function call(path: string, params: Record<string, string>): Promise<any> 
   }
 
   // 配额检查放在发请求之前 —— 这里是所有上游调用的唯一入口
-  if (!(await tryConsume())) {
+  const consumedKey = await tryConsume();
+  if (!consumedKey) {
     throw new MusicApiError(`今日音乐接口调用已达上限（${DAILY_LIMIT} 次），明天再来`, 429);
   }
 
@@ -62,15 +69,15 @@ async function call(path: string, params: Record<string, string>): Promise<any> 
       headers: { Accept: 'application/json' },
     });
   } catch {
-    // 没连上，上游不会计费，退还配额
-    await refund();
+    // 没连上，上游不会计费，退还配额（退回占用时的键，跨午夜也不会退错天）
+    await refund(consumedKey);
     throw new MusicApiError('音乐服务连接失败', 502);
   }
 
   if (!res.ok) {
     // 5xx 是上游自己出错，多半没真正计费，退还配额，
     // 免得对方抖动一阵就把一天的额度耗光；4xx 是我们的请求有问题，照常计数。
-    if (res.status >= 500) await refund();
+    if (res.status >= 500) await refund(consumedKey);
     throw new MusicApiError(`音乐服务返回 ${res.status}`, 502);
   }
 
@@ -80,7 +87,7 @@ async function call(path: string, params: Record<string, string>): Promise<any> 
   }
   // 上游用 body.code 表达业务错误（401 缺 key、404 找不到歌等），HTTP 状态可能仍是 200
   if (typeof body.code === 'number' && body.code !== 200) {
-    throw new MusicApiError(body.msg ?? '音乐服务返回错误', body.code === 401 ? 503 : 502);
+    throw new MusicApiError(body.msg ? redact(body.msg) : '音乐服务返回错误', body.code === 401 ? 503 : 502);
   }
   return body.data ?? body;
 }

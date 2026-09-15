@@ -37,6 +37,8 @@ export default function LoginForm({ next }: { next: string }) {
       action="/api/auth"
       onSubmit={onSubmit}
     >
+      {/* 无 JS 时随原生提交带回跳转目标；JS 流程用的是 LoginForm 的 next prop */}
+      <input type="hidden" name="next" value={next} />
       <input
         type="password"
         name="password"

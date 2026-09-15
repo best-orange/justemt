@@ -126,7 +126,14 @@ async function pipeline(commands: (string | number)[][]): Promise<any[]> {
   if (!res.ok) throw new Error(`Upstash ${res.status}`);
   const body = await res.json();
   if (!Array.isArray(body)) throw new Error('Upstash 返回格式异常');
-  return body.map((r: any) => r?.result ?? null);
+  // 单条命令失败时 Upstash 仍是 HTTP 200，错误藏在结果项里：
+  // 必须上抛让 guarded() 回落到内存实现，而不是把错误当 null 静默放行（否则配额会悄悄失效）
+  return body.map((r: any) => {
+    if (r && typeof r === 'object' && r.error) {
+      throw new Error(`Upstash 命令失败：${String(r.error).slice(0, 120)}`);
+    }
+    return r?.result ?? null;
+  });
 }
 
 const redisStore: Store = {

@@ -6,11 +6,11 @@
  * - 没配 → 回落到进程内存，每实例各计各的，只是软上限
  */
 
-import { env } from './env';
+import { envPositiveNumber } from './env';
 import { store, storeStatus } from './store';
 
-/** 每日上限，可用 MUSIC_DAILY_LIMIT 覆盖 */
-export const DAILY_LIMIT = Number(env('MUSIC_DAILY_LIMIT') ?? 390);
+/** 每日上限，可用 MUSIC_DAILY_LIMIT 覆盖；配错值时回落默认而不是静默失效 */
+export const DAILY_LIMIT = Math.floor(envPositiveNumber('MUSIC_DAILY_LIMIT', 390));
 
 /** 计数键留够两天再过期，日切靠键名本身完成 */
 const KEY_TTL = 48 * 60 * 60;
@@ -27,25 +27,26 @@ export function today(): string {
 const dayKey = () => `music:quota:${today()}`;
 
 /**
- * 占用一次配额。返回 false 表示已达上限，调用方应放弃请求上游。
+ * 占用一次配额，返回占用的计数键；达上限返回 null，调用方应放弃请求上游。
  * 必须在真正发出上游请求之前调用。
  *
  * 先增后判，而不是先查后增 —— 后者在并发下会双双通过，超发配额。
+ * 返回键而不是布尔值：退款要退回到同一个键上，跨午夜时重算日期键会退错天。
  */
-export async function tryConsume(): Promise<boolean> {
+export async function tryConsume(): Promise<string | null> {
   const key = dayKey();
   const n = await store().incr(key, KEY_TTL);
   if (n > DAILY_LIMIT) {
     // 退回去，保证 usage() 报出来的数不会一直往上飘
     await store().decr(key);
-    return false;
+    return null;
   }
-  return true;
+  return key;
 }
 
 /** 上游请求没真正消耗额度时退还，避免网络抖动白白吃掉配额 */
-export async function refund(): Promise<void> {
-  await store().decr(dayKey());
+export async function refund(key: string): Promise<void> {
+  await store().decr(key);
 }
 
 export async function usage(): Promise<{

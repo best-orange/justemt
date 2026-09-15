@@ -1,5 +1,5 @@
 import { MusicApiError, type Track, fetchPlaylist, fetchSongUrl, playlistId } from '@/lib/music';
-import { env } from '@/lib/env';
+import { envPositiveNumber } from '@/lib/env';
 import { usage } from '@/lib/quota';
 import { store } from '@/lib/store';
 
@@ -26,15 +26,15 @@ const json = (data: unknown, status = 200, cache?: string) =>
     },
   });
 
-/** 歌单变动少，缓存 1 小时 */
-const PLAYLIST_TTL = Number(env('MUSIC_PLAYLIST_TTL') ?? 3600);
+/** 歌单变动少，缓存 1 小时；配错 TTL 时回落默认值而不是让缓存静默失效 */
+const PLAYLIST_TTL = Math.floor(envPositiveNumber('MUSIC_PLAYLIST_TTL', 3600));
 
 /**
  * 单曲地址缓存时长，默认 4 小时。
  * 上游返回的地址带时效但没说明具体多久；设长了偶尔会缓存到失效地址，
  * 前端 audio 报错时会清掉重取，代价只是一次重试，所以偏向设长以省配额。
  */
-const SONG_TTL = Number(env('MUSIC_SONG_TTL') ?? 4 * 3600);
+const SONG_TTL = Math.floor(envPositiveNumber('MUSIC_SONG_TTL', 4 * 3600));
 
 const PLAYLIST_KEY = 'music:playlist';
 const songKey = (id: string) => `music:song:${id}`;
@@ -79,6 +79,11 @@ export async function GET(request: Request) {
     if (action === 'url') {
       const id = url.searchParams.get('id');
       if (!id) return json({ ok: false, message: '缺少 id' }, 400);
+
+      // 先看单曲缓存：歌单缓存过期又恰好用完配额时，已缓存的地址仍应能播放。
+      // 缓存只会写入通过歌单校验的 id，命中即代表此前已校验过。
+      const cached = await store().get(songKey(id));
+      if (cached) return json({ ok: true, url: cached }, 200, 'private, max-age=60');
 
       // 只放行歌单里的曲目，否则这个接口就成了别人白嫖的免费解析代理
       const tracks = await getPlaylist();

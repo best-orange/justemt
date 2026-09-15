@@ -31,7 +31,8 @@ export default function VisitorsPage() {
           </div>
         </header>
 
-        <form id="visitor-reset-form" className="glass mt-6 hidden rounded-2xl p-5" aria-labelledby="visitor-reset-title">
+        {/* method=post：JS 失效时原生提交也不会把暗号带进 URL（该请求会被拒绝，但密码不进地址栏） */}
+        <form id="visitor-reset-form" method="post" className="glass mt-6 hidden rounded-2xl p-5" aria-labelledby="visitor-reset-title">
           <h2 id="visitor-reset-title" className="font-display text-lg font-bold text-frost">清空最近足迹</h2>
           <p className="mt-1 text-xs text-slate-400 dark:text-slate-400">
             只清空下方的足迹列表，累计访客、累计来访次数与今日统计都会保留。清空后无法恢复。

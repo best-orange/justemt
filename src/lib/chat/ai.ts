@@ -47,7 +47,8 @@ export async function streamChatResponse(input: {
     return plainText('对话功能尚未开启', 503);
   }
 
-  if (!unlimited && !(await consumeQuota())) {
+  const consumedKey = unlimited ? null : await consumeQuota();
+  if (!unlimited && !consumedKey) {
     const { limit } = await chatUsage();
     return plainText(`今天的对话次数用完了（每日 ${limit} 次），明天再来，或者登录后继续聊。`, 429);
   }
@@ -58,7 +59,7 @@ export async function streamChatResponse(input: {
   const settle = async () => {
     if (settled) return;
     settled = true;
-    if (!unlimited && !produced) await refundQuota();
+    if (consumedKey && !produced) await refundQuota(consumedKey);
   };
 
   try {
@@ -69,7 +70,9 @@ export async function streamChatResponse(input: {
       abortSignal: request.signal,
       timeout: TIMEOUT_MS,
       onChunk: (event) => {
-        if (event.chunk.type === 'text-delta') produced = true;
+        // 文本与思考链都算产出：只要上游开始生成，就不该因客户端中断而退还
+        const type: string = event.chunk.type;
+        if (type === 'text-delta' || type === 'reasoning-delta') produced = true;
       },
     });
 

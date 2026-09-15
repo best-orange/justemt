@@ -299,6 +299,8 @@ export function toPublicGalleryPhoto(photo: StoredGalleryPhoto): GalleryPhoto {
     height: photo.height,
     size: photo.size,
     uploadedAt: photo.uploadedAt,
+    // 下发给管理端做上传前的重复预检；公开页不使用
+    sha256: photo.sha256,
     image: publicUrl(photo.originalKey),
     preview: publicUrl(photo.previewKey),
     thumbnail: publicUrl(photo.thumbnailKey),

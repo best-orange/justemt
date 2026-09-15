@@ -109,22 +109,23 @@ function quotaKey(): string {
 }
 
 /**
- * 占用一次配额，返回 false 表示今日已达上限。
+ * 占用一次配额，返回占用的计数键；已达上限返回 null。
  * 先增后判，而不是先查后增 —— 后者在并发下会双双通过，超发配额。
+ * 返回键而不是布尔值：退款要退回到同一个键上，跨午夜时重算日期键会退错天。
  */
-export async function consumeQuota(): Promise<boolean> {
+export async function consumeQuota(): Promise<string | null> {
   const key = quotaKey();
   const used = await store().incr(key, QUOTA_TTL);
   if (used > dailyLimit()) {
     await store().decr(key);
-    return false;
+    return null;
   }
-  return true;
+  return key;
 }
 
 /** 上游一个字都没产出时退还，免得网络抖动白白吃掉今天的额度 */
-export async function refundQuota(): Promise<void> {
-  await store().decr(quotaKey());
+export async function refundQuota(key: string): Promise<void> {
+  await store().decr(key);
 }
 
 export async function chatUsage(): Promise<{ used: number; limit: number; remaining: number }> {
@@ -187,6 +188,7 @@ function textFromContent(content: unknown): string | undefined {
 /**
  * 把 AI SDK 抛出的错误收敛成一句能直接给访客看的话，
  * 优先取上游返回 JSON 里的报错原文（限长），其余退回通用提示。
+ * 上游若把密钥回显在报错里，先打码再展示。
  */
 export function friendlyAiError(error: unknown): string {
   const candidate = error as { responseBody?: unknown; statusCode?: unknown; name?: string; message?: string };
@@ -196,7 +198,7 @@ export function friendlyAiError(error: unknown): string {
       const message =
         (typeof parsed.error?.message === 'string' && parsed.error.message)
         || (typeof parsed.message === 'string' && parsed.message);
-      if (message) return message.slice(0, 200);
+      if (message) return redactSecrets(message.slice(0, 200));
     } catch {
       // 不是 JSON 就继续往下走
     }
@@ -205,7 +207,13 @@ export function friendlyAiError(error: unknown): string {
     return '上游鉴权失败，请检查 AI_API_KEY';
   }
   if (typeof candidate.message === 'string' && candidate.message && !candidate.message.startsWith('AI_')) {
-    return candidate.message.slice(0, 200);
+    return redactSecrets(candidate.message.slice(0, 200));
   }
   return 'AI 服务暂时不可用';
+}
+
+/** 报错文本里若出现当前配置的密钥，替换成占位符 */
+function redactSecrets(text: string): string {
+  const key = apiKey();
+  return key ? text.split(key).join('[已隐藏]') : text;
 }

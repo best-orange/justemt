@@ -9,7 +9,11 @@ export const VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const RECENT_KEY = 'visitors:recent';
 const TOTAL_KEY = 'visitors:total';
 const TOTAL_VISITORS_KEY = 'visitors:unique:total';
-const TOTAL_TTL = 10 * 365 * 24 * 60 * 60;
+/**
+ * 「首次来访」标记的保留时长。此前是十年：伪造访客每次都能造出新的 seen:all 键，
+ * 十年期会让键无限堆积，收敛到一年。
+ */
+const TOTAL_TTL = 365 * 24 * 60 * 60;
 const DAY_TTL = 3 * 24 * 60 * 60;
 /** 一次来访的时间窗口：同一访客 30 分钟内的连续浏览算作同一次来访 */
 const VISIT_WINDOW_TTL = 30 * 60;

@@ -9,11 +9,6 @@ export const VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const RECENT_KEY = 'visitors:recent';
 const TOTAL_KEY = 'visitors:total';
 const TOTAL_VISITORS_KEY = 'visitors:unique:total';
-/**
- * 「首次来访」标记的保留时长。此前是十年：伪造访客每次都能造出新的 seen:all 键，
- * 十年期会让键无限堆积，收敛到一年。
- */
-const TOTAL_TTL = 365 * 24 * 60 * 60;
 const DAY_TTL = 3 * 24 * 60 * 60;
 /** 一次来访的时间窗口：同一访客 30 分钟内的连续浏览算作同一次来访 */
 const VISIT_WINDOW_TTL = 30 * 60;
@@ -106,6 +101,11 @@ function visitorKey(visitorId: string): string {
   return hash(`justemt:${visitorId}`).slice(0, 8).toUpperCase();
 }
 
+/** Redis key 不直接保存浏览器 Cookie 中的 UUID，使用不可逆摘要作为内部身份。 */
+function storageVisitorId(visitorId: string): string {
+  return hash(`justemt:visitor-storage:${visitorId}`).slice(0, 32);
+}
+
 function dayVisitsKey(day: string): string {
   return `visitors:day:${day}`;
 }
@@ -115,16 +115,16 @@ function dayUniqueKey(day: string): string {
 }
 
 function daySeenKey(day: string, id: string): string {
-  return `visitors:seen:${day}:${id}`;
+  return `visitors:seen:${day}:${storageVisitorId(id)}`;
 }
 
 function allSeenKey(id: string): string {
-  return `visitors:seen:all:${id}`;
+  return `visitors:seen:all:${storageVisitorId(id)}`;
 }
 
 /** 一次来访的占位键，不含路径：站内翻页不会各记一条 */
 function visitWindowKey(day: string, id: string): string {
-  return `visitors:visit:${day}:${id}`;
+  return `visitors:visit:${day}:${storageVisitorId(id)}`;
 }
 
 function safePath(path: string): string {
@@ -134,6 +134,9 @@ function safePath(path: string): string {
 /**
  * 记录一次来访（而不是每个页面各记一条）。
  * 同一匿名访客 30 分钟内的连续浏览只写入一条，记录的 path 是这次来访的入口页面。
+ *
+ * 累计计数和“是否曾来过”标记是永久键：此前给累计键设置一年 TTL 会导致
+ * totalVisitors / totalVisits 在创建一年后整体归零，与“累计”语义不符。
  */
 export async function recordVisit(input: { visitorId: string; path: string; ip?: string; visitedAt?: Date }): Promise<boolean> {
   const path = safePath(input.path);
@@ -148,7 +151,7 @@ export async function recordVisit(input: { visitorId: string; path: string; ip?:
 
   const [firstToday, firstEver] = await Promise.all([
     storage.setIfAbsent(daySeenKey(day, input.visitorId), '1', DAY_TTL),
-    storage.setIfAbsent(allSeenKey(input.visitorId), '1', TOTAL_TTL),
+    storage.setIfAbsent(allSeenKey(input.visitorId), '1'),
   ]);
   const record: VisitorRecord = {
     visitorKey: visitorKey(input.visitorId),
@@ -159,8 +162,8 @@ export async function recordVisit(input: { visitorId: string; path: string; ip?:
   };
 
   await Promise.all([
-    storage.incr(TOTAL_KEY, TOTAL_TTL),
-    firstEver ? storage.incr(TOTAL_VISITORS_KEY, TOTAL_TTL) : Promise.resolve(),
+    storage.incr(TOTAL_KEY),
+    firstEver ? storage.incr(TOTAL_VISITORS_KEY) : Promise.resolve(),
     storage.incr(dayVisitsKey(day), DAY_TTL),
     firstToday ? storage.incr(dayUniqueKey(day), DAY_TTL) : Promise.resolve(),
     storage.listPrepend(RECENT_KEY, JSON.stringify(record), RECENT_LIMIT),

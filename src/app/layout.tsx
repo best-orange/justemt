@@ -9,6 +9,7 @@ import NavigationEvents from '@/components/navigation-events';
 import GlassEffectLoader from '@/components/glass-effect-loader';
 import { env } from '@/lib/env';
 import './globals.css';
+import './wallpaper.css';
 
 export const metadata: Metadata = {
   title: 'justEMT · 爱蜜莉雅主题站',

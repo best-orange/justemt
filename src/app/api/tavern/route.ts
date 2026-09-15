@@ -3,6 +3,8 @@ import { AUTH_COOKIE, CHAT_COOKIE, hasUnlimitedAccess, sanitizeMessages, systemP
 import { streamChatResponse } from '@/lib/chat/ai';
 import { sanitizeChatContext } from '@/lib/chat/context';
 import { buildContextualMessages } from '@/lib/chat/engine';
+import { clientIp } from '@/lib/request-ip';
+import { checkSharedRateLimit } from '@/lib/shared-rate-limit';
 
 // 与 /api/chat 一致：流式对话最长 55 秒，留足平台限额
 export const maxDuration = 60;
@@ -17,9 +19,23 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
 
 /**
  * POST /api/tavern —— 带角色状态的流式对话。
- * 与 /api/chat 共用每日配额；上下文只进本轮 Prompt，不落服务器存储。
+ * 与 /api/chat 共用每日配额和 burst limiter；上下文只进本轮 Prompt，不落服务器存储。
  */
 export async function POST(request: Request) {
+  const jar = await cookies();
+  const unlimited = hasUnlimitedAccess(jar.get(CHAT_COOKIE)?.value, jar.get(AUTH_COOKIE)?.value);
+
+  // 与 /api/chat 使用同一个 scope，避免通过两个入口交替请求来绕过限速。
+  const burst = await checkSharedRateLimit({
+    scope: unlimited ? 'ai-authenticated' : 'ai-anonymous',
+    identifier: clientIp(request),
+    windowSeconds: 60,
+    max: unlimited ? 20 : 5,
+  });
+  if (burst.limited) {
+    return json({ ok: false, message: '消息发送太快了，请稍后再试' }, 429);
+  }
+
   let body: { messages?: unknown; context?: unknown };
   try {
     body = await request.json() as { messages?: unknown; context?: unknown };
@@ -32,9 +48,6 @@ export async function POST(request: Request) {
 
   const context = sanitizeChatContext(body.context);
   const contextualMessages = buildContextualMessages(messages, context);
-
-  const jar = await cookies();
-  const unlimited = hasUnlimitedAccess(jar.get(CHAT_COOKIE)?.value, jar.get(AUTH_COOKIE)?.value);
 
   return streamChatResponse({ messages: contextualMessages, system: systemPrompt(), request, unlimited });
 }

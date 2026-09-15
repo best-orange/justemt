@@ -6,6 +6,7 @@ import MusicPlayer from '@/components/music-player';
 import SiteWallpaper from '@/components/site-wallpaper';
 import VisitTracker from '@/components/visit-tracker';
 import NavigationEvents from '@/components/navigation-events';
+import GlassEffectLoader from '@/components/glass-effect-loader';
 import { env } from '@/lib/env';
 import './globals.css';
 
@@ -65,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {musicEnabled ? <MusicPlayer /> : null}
         <VisitTracker />
         <NavigationEvents />
-        <script src="/scripts/liquid-glass-effect.js" />
+        <GlassEffectLoader />
       </body>
     </html>
   );

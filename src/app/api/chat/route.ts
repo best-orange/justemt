@@ -9,6 +9,8 @@ import {
   systemPrompt,
 } from '@/lib/chat';
 import { streamChatResponse } from '@/lib/chat/ai';
+import { clientIp } from '@/lib/request-ip';
+import { checkSharedRateLimit } from '@/lib/shared-rate-limit';
 
 // 流式对话最长 55 秒（见 src/lib/chat.ts 的 TIMEOUT_MS），
 // 函数平台上限必须大于它，否则先于我们掐断请求。
@@ -48,6 +50,18 @@ export async function GET() {
 export async function POST(request: Request) {
   const jar = await cookies();
   const unlimited = hasUnlimitedAccess(jar.get(CHAT_COOKIE)?.value, jar.get(AUTH_COOKIE)?.value);
+
+  // 日配额只能限制总成本，不能阻止单个客户端瞬间打光额度。
+  // 登录用户虽然不计日配额，也保留较宽松的 burst limit，避免 Cookie 泄漏后被高速滥用。
+  const burst = await checkSharedRateLimit({
+    scope: unlimited ? 'ai-authenticated' : 'ai-anonymous',
+    identifier: clientIp(request),
+    windowSeconds: 60,
+    max: unlimited ? 20 : 5,
+  });
+  if (burst.limited) {
+    return json({ ok: false, message: '消息发送太快了，请稍后再试' }, 429);
+  }
 
   let body: { messages?: unknown };
   try {

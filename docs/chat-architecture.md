@@ -1,25 +1,44 @@
-# justEMT Tavern v1
+# justEMT Chat / Tavern Architecture
 
-## Architecture
+## Current architecture
 
-The refactor keeps the existing Astro site and introduces a parallel role-play engine.
+The site is now fully migrated to **Next.js App Router**. Chat and Tavern run as parallel routes on top of the same Vercel AI SDK streaming layer.
 
-- `/chat`: current stable chat page.
-- `/tavern`: Tavern v1 test page.
-- `/api/chat`: current streaming model endpoint.
-- `/api/tavern`: context adapter used by Tavern v1.
+- `/chat`: stable public chat page.
+- `/tavern`: Tavern v1 role-play experiment.
+- `/api/chat`: standard streaming endpoint.
+- `/api/tavern`: context-aware streaming endpoint.
+- `src/lib/chat.ts`: shared provider configuration, message sanitization and daily quota.
+- `src/lib/chat/ai.ts`: Vercel AI SDK transport and streaming response handling.
+- `src/lib/shared-rate-limit.ts`: cross-instance burst protection for both endpoints.
 
-The new domain modules live under `src/lib/chat/`:
+The role-play domain modules live under `src/lib/chat/`:
 
 - `types.ts`: Character, Persona, State, Memory and message types.
 - `character.ts`: Emilia character profile.
 - `context.ts`: default state plus validation/sanitization for client context.
-- `prompt.ts`: builds the role-play context in a stable order.
-- `engine.ts`: compatibility adapter around the existing streaming client.
+- `prompt.ts`: builds the structured role-play context.
+- `engine.ts`: converts structured context into messages accepted by the shared AI transport.
+
+## Request path
+
+```text
+Browser
+  -> /api/chat or /api/tavern
+  -> cookie / access check
+  -> shared IP burst limiter
+  -> request sanitization
+  -> anonymous daily quota (unless authenticated)
+  -> Vercel AI SDK
+  -> OpenAI-compatible upstream
+  -> UI message stream
+```
+
+`/chat` and `/tavern` deliberately share the same rate-limit scope so a client cannot double its short-term allowance by alternating between the two endpoints.
 
 ## Prompt order
 
-The role-play context is assembled as:
+The Tavern context is assembled in a stable order:
 
 1. engine rules
 2. character profile
@@ -28,12 +47,13 @@ The role-play context is assembled as:
 5. current state
 6. long-term memory
 7. optional site-specific instruction
+8. recent conversation
 
-Keep this order centralized in `prompt.ts`. Future Worldbook, retrieval and token-budget logic should be added there rather than scattered through page code.
+Keep this ordering centralized in `prompt.ts`. Future Worldbook retrieval and token-budget logic should enter through this layer rather than being scattered through page components.
 
-## State
+## State model
 
-The v1 state model contains:
+Tavern v1 contains:
 
 - relationship stage
 - trust
@@ -43,25 +63,49 @@ The v1 state model contains:
 - scene
 - turn count
 
-Only `turnCount` is advanced automatically in v1. Trust and affinity should not grow mechanically from message count; a later version should update them from meaningful events.
+At present, **the browser is still the source of truth for this state**. The server validates shape, ranges and maximum lengths, but it does not cryptographically prove that the state was produced by an authoritative transition engine.
 
-## Memory
+Only `turnCount` advances automatically in v1. Trust and affinity intentionally do not grow from raw message count.
 
-The v1 memory model contains:
+This means Tavern v1 should be described as a **structured role-play context PoC**, not yet as a trusted game-state or relationship engine.
+
+## Memory model
+
+The v1 memory interface contains:
 
 - `summary`
 - `facts[]`
 - `importantEvents[]`
 
-The interface is active, but automatic memory extraction is intentionally deferred. A later version can periodically produce structured memory candidates, deduplicate them and persist only reliable items.
+The fields participate in prompt construction, but automatic memory extraction and deduplication are not implemented yet.
+
+Chat and Tavern history are kept in browser `localStorage`. The server receives recent messages only for the current model request and does not persist conversation text.
+
+## Recommended v2 authority boundary
+
+The next major architecture change should move state evolution away from browser authority:
+
+```text
+Browser
+  -> current user message
+Server
+  -> load conversation state
+  -> retrieve relevant memories/world entries
+  -> build prompt
+  -> call model
+  -> extract structured state/memory candidates
+  -> validate transition
+  -> persist authoritative state
+  -> return response
+```
+
+The browser should become a presentation and interaction layer, not the authority for trust, affinity, relationship stage or long-term memories.
 
 ## Persistence roadmap
 
-v1 keeps history and context in browser storage so the existing privacy behavior is preserved.
+For cross-device history and authoritative Tavern state, use a relational database such as PostgreSQL for durable entities. Redis remains appropriate for counters, burst limits and short-lived cache; R2 should remain focused on media assets.
 
-For cross-device conversations, use PostgreSQL for users, conversations, messages, personas, state and memories. Redis remains appropriate for counters, short-lived state and cache. Object storage should remain focused on media assets.
-
-Suggested tables:
+Suggested durable tables:
 
 ```text
 users
@@ -71,34 +115,51 @@ conversations
 messages
 conversation_state
 memories
+world_entries
 ```
 
 ## Long-context strategy
 
-Do not send the entire conversation forever. The target context should eventually be:
+Do not send an ever-growing complete transcript. The target context should be:
 
 ```text
 engine rules
 + character
 + relevant world entries
 + persona
-+ current state
++ authoritative current state
 + long-term summary
-+ relevant important memories
++ selected important memories
 + recent full messages
 + current user message
 ```
 
-Protect character, state and recent messages first; allocate the remaining context budget to world information and memories.
+Protect character definition, current state and recent messages first. Allocate the remaining token budget to world information and retrieved memories.
+
+## Security and cost controls
+
+Current controls:
+
+- API keys remain server-side.
+- Anonymous daily quota is globally capped.
+- Anonymous requests: 5 requests/minute/IP.
+- Authenticated requests: 20 requests/minute/IP.
+- `/chat` and `/tavern` share rate-limit counters.
+- Message count and message length are clamped server-side.
+- Model output is rendered through DOM text nodes rather than raw HTML.
+- Upstream requests time out before the Vercel function duration limit.
+- Quota is refunded when an upstream request produces no output.
+
+When Upstash is configured, short-term rate limits and daily counters are shared across Vercel instances. Without it, the generic Store falls back to process memory and should be treated as development/best-effort behavior.
 
 ## Migration plan
 
-1. Test `/tavern` online without changing `/chat`.
-2. Move structured context support directly into the main chat endpoint.
-3. Add a Persona editor.
-4. Add structured summary and memory extraction.
-5. Add PostgreSQL persistence for cross-device history.
-6. Add Worldbook/Lorebook retrieval.
-7. Promote Tavern Engine to `/chat` and remove the temporary compatibility layer.
+1. Keep `/chat` stable while Tavern v1 is evaluated.
+2. Add a Persona editor if the feature is still useful after testing.
+3. Introduce server-owned conversation IDs and durable state.
+4. Add structured memory extraction with validation and deduplication.
+5. Add Worldbook/Lorebook retrieval.
+6. Add token-budget-aware context selection.
+7. Once Tavern v2 is demonstrably more reliable than the current chat path, promote it to `/chat` and remove the temporary parallel route.
 
-The model transport can later be replaced by Vercel AI SDK without changing the Character, State, Memory or Prompt Builder modules.
+Avoid another framework rewrite: the current Next.js + Vercel AI SDK split is sufficient for these steps.

@@ -75,7 +75,7 @@ export async function GET(request: Request) {
 
 /** POST /api/gallery —— 管理员签发直传 URL 或提交上传后的元数据。 */
 export async function POST(request: Request) {
-  if (!(await isAdmin())) return json({ ok: false, message: '需要先解封阅览室' }, 401);
+  if (!(await isAdmin())) return json({ ok: false, message: '需要先解封禁书库' }, 401);
   if (!isGalleryR2Configured()) return json({ ok: false, message: 'R2 尚未配置' }, 503);
 
   let body: Record<string, unknown>;
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
 
 /** DELETE /api/gallery?id=... —— 删除一张远程作品；本地 YAML 内容不会被此接口删除。 */
 export async function DELETE(request: Request) {
-  if (!(await isAdmin())) return json({ ok: false, message: '需要先解封阅览室' }, 401);
+  if (!(await isAdmin())) return json({ ok: false, message: '需要先解封禁书库' }, 401);
   if (!isGalleryR2Configured()) return json({ ok: false, message: 'R2 尚未配置' }, 503);
   const url = new URL(request.url);
   const id = url.searchParams.get('id')?.trim();

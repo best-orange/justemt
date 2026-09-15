@@ -8,7 +8,7 @@ import { hasUnlimitedAccess } from '@/lib/chat';
 
 export const metadata: Metadata = {
   title: '风铃之间 · justEMT',
-  description: '说出暗号，进入冰封的阅览室。',
+  description: '说出暗号，进入贝蒂的禁书库。',
 };
 
 export default async function LoginPage({
@@ -42,7 +42,7 @@ export default async function LoginPage({
           风铃之间
         </h1>
         <p className="mt-2 text-sm text-white/70">
-          前方是冰封的阅览室。<br />说出暗号，微精灵才会为你让路。
+          前方是贝蒂的禁书库。<br />说出暗号，微精灵才会为你让路。
         </p>
 
         <LoginForm next={safeNext} />

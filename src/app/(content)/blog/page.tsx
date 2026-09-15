@@ -23,7 +23,7 @@ export default async function BlogIndexPage() {
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-wide sm:text-4xl">
-            <span className="text-frost">冰封阅览室</span>
+            <span className="text-frost">贝蒂的禁书库</span>
           </h1>
           <p className="mt-3 text-slate-600 dark:text-slate-300">
             {isAuthenticated ? '公开文章与私密笔记，都在这里安静地等候。' : '公开文章无需暗号；私密笔记会在验证后开放。'}

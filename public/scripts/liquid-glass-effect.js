@@ -268,5 +268,6 @@
   } else {
     applyLiquidGlass();
   }
-  document.addEventListener('astro:page-load', applyLiquidGlass);
+  // Next.js 客户端导航后重新扫描页面里新挂载的玻璃面板
+  document.addEventListener('justemt:page-load', applyLiquidGlass);
 })();

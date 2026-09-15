@@ -50,15 +50,14 @@ const memoryStore: Store = {
   kind: 'memory',
   async incr(key, ttlSeconds) {
     const next = Number(memGet(key) ?? 0) + 1;
-    // 键已存在时保留原有到期时间，避免每次自增都把 TTL 续上；
-    // ttlSeconds 未提供时使用永久计数，供真正的“累计”统计使用。
     const existing = mem.get(key);
-    const expiresAt =
-      existing && Date.now() <= existing.expiresAt
+    // 不传 TTL 代表调用方明确要求永久计数；若是从旧版本迁移来的有限 TTL 键，
+    // 这里也会顺手转成永久，避免“累计”计数一年后归零。
+    const expiresAt = ttlSeconds === undefined
+      ? Number.POSITIVE_INFINITY
+      : existing && Date.now() <= existing.expiresAt
         ? existing.expiresAt
-        : ttlSeconds
-          ? Date.now() + ttlSeconds * 1000
-          : Number.POSITIVE_INFINITY;
+        : Date.now() + ttlSeconds * 1000;
     mem.set(key, { value: String(next), expiresAt });
     return next;
   },
@@ -77,10 +76,17 @@ const memoryStore: Store = {
     mem.delete(key);
   },
   async setIfAbsent(key, value, ttlSeconds) {
-    if (memGet(key) !== null) return false;
+    const existingValue = memGet(key);
+    if (existingValue !== null) {
+      if (ttlSeconds === undefined) {
+        const existing = mem.get(key);
+        if (existing) mem.set(key, { ...existing, expiresAt: Number.POSITIVE_INFINITY });
+      }
+      return false;
+    }
     mem.set(key, {
       value,
-      expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : Number.POSITIVE_INFINITY,
+      expiresAt: ttlSeconds === undefined ? Number.POSITIVE_INFINITY : Date.now() + ttlSeconds * 1000,
     });
     return true;
   },
@@ -152,8 +158,12 @@ async function pipeline(commands: (string | number)[][]): Promise<any[]> {
 const redisStore: Store = {
   kind: 'redis',
   async incr(key, ttlSeconds) {
-    if (!ttlSeconds) {
-      const [n] = await pipeline([['INCR', key]]);
+    if (ttlSeconds === undefined) {
+      // PERSIST 负责把旧版本中残留 TTL 的累计计数原地迁移成永久键。
+      const [n] = await pipeline([
+        ['INCR', key],
+        ['PERSIST', key],
+      ]);
       return Number(n);
     }
     // INCR 是原子的；NX 让 TTL 只在键首次创建时设置，后续自增不会把过期时间续上
@@ -177,10 +187,14 @@ const redisStore: Store = {
     await pipeline([['DEL', key]]);
   },
   async setIfAbsent(key, value, ttlSeconds) {
-    const command: (string | number)[] = ['SET', key, value];
-    if (ttlSeconds) command.push('EX', ttlSeconds);
-    command.push('NX');
-    const [result] = await pipeline([command]);
+    if (ttlSeconds === undefined) {
+      const [result] = await pipeline([
+        ['SET', key, value, 'NX'],
+        ['PERSIST', key],
+      ]);
+      return result === 'OK';
+    }
+    const [result] = await pipeline([['SET', key, value, 'EX', ttlSeconds, 'NX']]);
     return result === 'OK';
   },
   async compareAndDelete(key, expected) {

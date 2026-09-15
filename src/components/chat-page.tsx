@@ -6,7 +6,6 @@ import type { UIMessage } from 'ai';
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -156,15 +155,6 @@ interface ChatPageProps {
 }
 
 export default function ChatPage({ configured, unlimited, limit }: ChatPageProps) {
-  const initialMessages = useMemo(
-    () => loadStored().map((message, index): UIMessage => ({
-      id: `stored-${index}`,
-      role: message.role,
-      parts: [{ type: 'text', text: message.content }],
-    })),
-    [],
-  );
-
   // 流中报错但已出字时的中断原因：onError 先到、onFinish 后到，配对存储
   const interruptRef = useRef<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -174,7 +164,8 @@ export default function ChatPage({ configured, unlimited, limit }: ChatPageProps
   const chatRef = useRef<Chat<UIMessage> | null>(null);
   if (chatRef.current === null) {
     chatRef.current = new Chat<UIMessage>({
-      messages: initialMessages,
+      // 本地历史在挂载后回填（见下方 effect）：SSR 与客户端首屏保持一致，避免水合不匹配
+      messages: [],
       transport: new DefaultChatTransport({ api: '/api/chat' }),
       onFinish: ({ message }) => {
         if (interruptRef.current) {
@@ -239,15 +230,52 @@ export default function ChatPage({ configured, unlimited, limit }: ChatPageProps
     sectionRef.current?.classList.add('is-visible');
   }, []);
 
-  // 挂载与每轮结束后刷新余量
+  // 挂载与每轮结束后刷新余量；流式期间不重复请求
   useEffect(() => {
+    if (status === 'submitted' || status === 'streaming') return;
     void refreshQuota();
   }, [refreshQuota, status]);
 
-  // 对话变化时写回本地历史
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const historyLoadedRef = useRef(false);
+  const saveTimerRef = useRef<number | null>(null);
+
+  // 对话变化时写回本地历史；流式期间节流到最多每秒一次，避免每个增量都同步写盘
   useEffect(() => {
-    saveStored(messages);
-  }, [messages]);
+    if (!historyLoadedRef.current) return;
+    if (status === 'streaming') {
+      if (saveTimerRef.current !== null) return;
+      saveTimerRef.current = window.setTimeout(() => {
+        saveTimerRef.current = null;
+        saveStored(messagesRef.current);
+      }, 1000);
+      return;
+    }
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    saveStored(messagesRef.current);
+  }, [messages, status]);
+
+  // 本地历史在挂载后回填：SSR 与客户端首屏一致，消除水合不匹配
+  useEffect(() => {
+    const stored = loadStored();
+    if (stored.length) {
+      setMessages(stored.map((message, index): UIMessage => ({
+        id: `stored-${index}`,
+        role: message.role,
+        parts: [{ type: 'text', text: message.content }],
+      })));
+    }
+    historyLoadedRef.current = true;
+  }, [setMessages]);
+
+  // 卸载时清掉尚未落盘的节流定时器
+  useEffect(() => () => {
+    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+  }, []);
 
   // 滚动到底部（新消息与流式增量都会触达）
   useEffect(() => {

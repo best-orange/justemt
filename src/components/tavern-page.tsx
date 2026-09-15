@@ -129,15 +129,6 @@ interface TavernPageProps {
 export default function TavernPage({ configured, unlimited, limit }: TavernPageProps) {
   const contextRef = useRef<TavernContext>(loadContext());
 
-  const initialMessages = useMemo(
-    () => loadStored().map((message, index): UIMessage => ({
-      id: `stored-${index}`,
-      role: message.role,
-      parts: [{ type: 'text', text: message.content }],
-    })),
-    [],
-  );
-
   // 每轮请求都会带上当前的角色状态，由服务端把它与最近消息一起组成上下文
   const transport = useMemo(
     () => new DefaultChatTransport({
@@ -157,7 +148,8 @@ export default function TavernPage({ configured, unlimited, limit }: TavernPageP
   const chatRef = useRef<Chat<UIMessage> | null>(null);
   if (chatRef.current === null) {
     chatRef.current = new Chat<UIMessage>({
-      messages: initialMessages,
+      // 本地历史在挂载后回填（见下方 effect）：SSR 与客户端首屏保持一致，避免水合不匹配
+      messages: [],
       transport,
       onFinish: ({ message }) => {
         try {
@@ -230,13 +222,52 @@ export default function TavernPage({ configured, unlimited, limit }: TavernPageP
     sectionRef.current?.classList.add('is-visible');
   }, []);
 
+  // 挂载与每轮结束后刷新余量；流式期间不重复请求
   useEffect(() => {
+    if (status === 'submitted' || status === 'streaming') return;
     void refreshQuota();
   }, [refreshQuota, status]);
 
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const historyLoadedRef = useRef(false);
+  const saveTimerRef = useRef<number | null>(null);
+
+  // 对话变化时写回本地历史；流式期间节流到最多每秒一次，避免每个增量都同步写盘
   useEffect(() => {
-    saveStored(messages);
-  }, [messages]);
+    if (!historyLoadedRef.current) return;
+    if (status === 'streaming') {
+      if (saveTimerRef.current !== null) return;
+      saveTimerRef.current = window.setTimeout(() => {
+        saveTimerRef.current = null;
+        saveStored(messagesRef.current);
+      }, 1000);
+      return;
+    }
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    saveStored(messagesRef.current);
+  }, [messages, status]);
+
+  // 本地历史在挂载后回填：SSR 与客户端首屏一致，消除水合不匹配
+  useEffect(() => {
+    const stored = loadStored();
+    if (stored.length) {
+      setMessages(stored.map((message, index): UIMessage => ({
+        id: `stored-${index}`,
+        role: message.role,
+        parts: [{ type: 'text', text: message.content }],
+      })));
+    }
+    historyLoadedRef.current = true;
+  }, [setMessages]);
+
+  // 卸载时清掉尚未落盘的节流定时器
+  useEffect(() => () => {
+    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const thread = threadRef.current;
@@ -297,7 +328,7 @@ export default function TavernPage({ configured, unlimited, limit }: TavernPageP
   const showHttpError = Boolean(error) && !busy && (lastMessage?.role === 'user' || messages.length === 0);
 
   return (
-    <section data-tavern-page ref={sectionRef} className="chat reveal is-visible" data-configured={configured} data-unlimited={unlimited}>
+    <section data-tavern-page ref={sectionRef} className="chat reveal" data-configured={configured} data-unlimited={unlimited}>
       <header className="chat__intro">
         <div className="min-w-0">
           <p className="eyebrow text-lilac-500 dark:text-lilac-300">TAVERN ENGINE · V1</p>
@@ -366,7 +397,7 @@ export default function TavernPage({ configured, unlimited, limit }: TavernPageP
             <article className="chat__row chat__row--assistant">
               <span className="chat__role">Emilia</span>
               <div className="chat__bubble chat__bubble--error" style={{ whiteSpace: 'pre-wrap' }}>
-                {error?.message?.slice(0, 200) ?? '出了点问题'}
+                {friendlyError(error?.message ?? '出了点问题')}
               </div>
             </article>
           )}

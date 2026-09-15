@@ -1,0 +1,16 @@
+export default function Footer() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer className="site-footer mt-24">
+      <div className="site-footer__inner mx-auto flex max-w-4xl flex-col items-center gap-3 px-5 py-7 text-sm text-slate-500 dark:text-slate-300 sm:flex-row sm:justify-between sm:px-7">
+        <p className="font-display tracking-wide">
+          © {year} justEMT · <span className="text-frost">E·m·T</span>
+        </p>
+        <p className="text-xs opacity-70 dark:opacity-90">
+          非官方粉丝站 · 角色版权归属 ©長月達平・KADOKAWA / Re:ゼロから始める異世界生活製作委員会
+        </p>
+      </div>
+    </footer>
+  );
+}

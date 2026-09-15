@@ -1,0 +1,83 @@
+'use client';
+
+import type { MouseEvent } from 'react';
+
+/** 亮/暗主题切换按钮，切换逻辑与 Astro 版完全一致 */
+export default function ThemeToggle() {
+  const onToggle = (event: MouseEvent<HTMLButtonElement>) => {
+    const btn = event.currentTarget;
+
+    const applyTheme = () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      // 同步移动端浏览器地址栏配色，与根布局的初始化保持一致
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute('content', isDark ? '#0a0f26' : '#f7f6fd');
+      return isDark;
+    };
+
+    // 不支持 View Transitions 或用户偏好减弱动态效果时直接切换
+    if (
+      !document.startViewTransition ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      applyTheme();
+      return;
+    }
+
+    // 以被点击按钮的中心为圆心。注意：root 快照在 devicePixelRatio > 1
+    // 的设备上可能按缩放采样，直接用 px 坐标会被 DPR 缩放导致圆心偏移；
+    // 改用相对快照盒的百分比坐标，任何缩放下都能对准按钮位置
+    const rect = btn.getBoundingClientRect();
+    const x = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+    const y = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+    const px = rect.left + rect.width / 2;
+    const py = rect.top + rect.height / 2;
+    const radius = Math.hypot(
+      Math.max(px, window.innerWidth - px),
+      Math.max(py, window.innerHeight - py),
+    );
+
+    const transition = document.startViewTransition(() => {
+      applyTheme();
+    });
+
+    // ready 在过渡被跳过时（如快速连点）会 reject，吞掉避免报错
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}% ${y}%)`,
+            `circle(${radius}px at ${x}% ${y}%)`,
+          ],
+        },
+        {
+          duration: 600,
+          easing: 'ease-in-out',
+          // 动画作用在新主题的快照上：新画面从圆心扩散盖住旧画面
+          pseudoElement: '::view-transition-new(root)',
+        },
+      );
+    }).catch(() => {});
+  };
+
+  return (
+    <button
+      data-theme-toggle
+      type="button"
+      aria-label="切换深色模式"
+      onClick={onToggle}
+      className="nav-glass-control inline-flex h-10 w-10 items-center justify-center rounded-full"
+    >
+      {/* 太阳图标（深色模式下显示） */}
+      <svg className="relative z-[1] hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+      </svg>
+      {/* 月亮图标（浅色模式下显示） */}
+      <svg className="relative z-[1] block h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+      </svg>
+    </button>
+  );
+}

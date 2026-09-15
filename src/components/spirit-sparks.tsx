@@ -1,0 +1,146 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+
+/**
+ * 点击生成微精灵光点：发光的蓝白色光球，缓缓上升、明灭后消散。
+ * - 全站生效：挂在根布局，fixed 全屏画布，pointer-events:none
+ * - 尊重 prefers-reduced-motion：不生成光点
+ * - 标签页隐藏时自动暂停
+ */
+type Spark = {
+  x: number; y: number; r: number;
+  vx: number; vy: number;
+  life: number; maxLife: number;
+  pulse: number; hue: number;
+};
+
+export default function SpiritSparks() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reduceMotion.matches) return;
+
+    const ctx = canvas.getContext('2d');
+    const rand = (min: number, max: number) => min + Math.random() * (max - min);
+
+    let sparks: Spark[] = [];
+    let width = 0;
+    let height = 0;
+    let raf = 0;
+
+    const MAX_SPARKS = 160;
+
+    function resize() {
+      if (!canvas || !ctx) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function spawn(x: number, y: number) {
+      const count = Math.round(rand(5, 9));
+      for (let i = 0; i < count; i++) {
+        if (sparks.length >= MAX_SPARKS) sparks.shift();
+        const angle = rand(0, Math.PI * 2);
+        const speed = rand(0.3, 1.2);
+        sparks.push({
+          x,
+          y,
+          r: rand(2, 5),
+          vx: Math.cos(angle) * speed,
+          vy: -rand(0.4, 1.4),
+          life: 0,
+          maxLife: rand(60, 110),
+          pulse: rand(0, Math.PI * 2),
+          // 微精灵色：冰蓝到淡紫
+          hue: rand(195, 265),
+        });
+      }
+      if (!raf) tick();
+    }
+
+    function drawSpark(s: Spark) {
+      if (!ctx) return;
+      const t = s.life / s.maxLife;
+      const flicker = 0.75 + 0.25 * Math.sin(s.pulse);
+      const alpha = (1 - t) * flicker;
+      const glow = s.r * (3.5 + Math.sin(s.pulse) * 0.8);
+
+      const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, glow);
+      grad.addColorStop(0, `hsla(${s.hue}, 90%, 92%, ${alpha})`);
+      grad.addColorStop(0.35, `hsla(${s.hue}, 85%, 75%, ${alpha * 0.55})`);
+      grad.addColorStop(1, `hsla(${s.hue}, 85%, 70%, 0)`);
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, glow, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 亮核
+      ctx.fillStyle = `hsla(0, 0%, 100%, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function tick() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, width, height);
+
+      sparks = sparks.filter((s) => s.life < s.maxLife);
+      for (const s of sparks) {
+        s.life += 1;
+        s.pulse += 0.15;
+        // 减速后稳定上浮，带轻微飘摆
+        s.vx *= 0.98;
+        s.vy = s.vy * 0.98 - 0.015;
+        s.x += s.vx + Math.sin(s.pulse * 0.6) * 0.2;
+        s.y += s.vy;
+        drawSpark(s);
+      }
+
+      if (sparks.length > 0 && !document.hidden) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+        ctx.clearRect(0, 0, width, height);
+      }
+    }
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (document.hidden) return;
+      spawn(e.clientX, e.clientY);
+    };
+    const onVisibility = () => {
+      if (!document.hidden && sparks.length > 0 && !raf) tick();
+    };
+
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    resize();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="spirit-sparks pointer-events-none fixed inset-0 z-50 h-full w-full"
+      aria-hidden="true"
+    />
+  );
+}

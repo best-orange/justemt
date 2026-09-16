@@ -1,93 +1,160 @@
 # justEMT
 
-爱蜜莉雅主题站：沉浸式首页、瀑布流画廊、AI 对话、受保护博客和可选音乐播放器。
+爱蜜莉雅主题个人站，当前基于 **Next.js 16 App Router + React 19 + TypeScript + Tailwind CSS 4**。
 
-## 来访雪笺
+主要功能包括：沉浸式首页、瀑布流画廊、R2 管理上传、AI 对话、Tavern 角色实验页、受保护博客、匿名来访统计，以及可选音乐播放器。
 
-公开页面会记录匿名来访，并在最近足迹中显示经过脱敏的 IP（IPv4 后两段、IPv6 后四段替换为 `*`），不保存完整 IP、设备信息或个人资料。记录的是“有人来访”而不是每次翻页：同一匿名访客 30 分钟内的连续浏览只记一次，`path` 保存这次来访的入口页面，站内切换页面不会新增记录。导航栏的“来访”入口可以查看累计访客、今日访客、来访次数、网站运行时间和最近 100 条足迹。
+## 技术架构
 
-“来访”页面右上角的“重置记录”需要输入与博客相同的暗号（`BLOG_PASSWORD`），验证通过后只清空最近足迹列表，累计访客、累计来访次数与今日统计都会保留，所以计数会从原值继续往上走。
+```text
+src/
+├── app/                  # Next.js App Router
+│   ├── (content)/        # 博客、画廊、来访等内容页面
+│   ├── (immersive)/      # 首页、登录等沉浸式页面
+│   ├── (wide)/           # Chat / Tavern / Music
+│   └── api/              # Route Handlers
+├── components/           # React 客户端/服务端组件
+├── content/              # 仓库内 Markdown / YAML 内容
+├── data/
+└── lib/                  # 鉴权、R2、Redis、AI、配额等服务端模块
+```
 
-记录优先使用 Upstash Redis；未配置 `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` 时会回落到当前实例内存，适合本地开发但不适合多实例生产统计。网站运行时间默认从项目首次提交时间计算，可通过 `SITE_LAUNCHED_AT` 覆盖。
+部署目标为 Vercel，`vercel.json` 已声明 `framework: nextjs`。
 
-## AI 对话
+## 开发
 
-`/chat` 是公开页面，和爱蜜莉雅聊天。对话内容只存在浏览器 `localStorage` 里，服务端不保存任何消息，`AI_API_KEY` 也只在服务端使用，不会下发到前端。
+需要 Node.js 20.9+。
 
-次数限制是**全站每天合计 N 次**，不是每人 N 次 —— 页面公开，匿名访客无法可靠区分，只能靠总量止损。`AI_DAILY_LIMIT` 默认 30，上限硬顶 100（配得更高也会被钳到 100）；填非法值或 0 会回落到默认值。按北京时间日切，与站点其他统计一致。用完之后登录即可继续，登录会话不计次也不受限。登录暗号默认与博客相同（`BLOG_PASSWORD`），也可以用 `CHAT_PASSWORD` 单独设置 —— 设置后对话只认这个独立暗号，博客登录不再解锁对话。
+```bash
+npm ci
+npm run dev
+```
 
-只要求上游兼容 `/chat/completions` 的流式协议，所以 OpenAI、DeepSeek、Moonshot、OpenRouter、自建网关都能用，区别只在 `AI_BASE_URL` 和 `AI_MODEL`：
+常用检查：
+
+```bash
+npm run typecheck
+npm run build
+npm run check
+```
+
+`npm run check` 会依次执行 TypeScript 类型检查和生产构建。仓库的 GitHub Actions 会在 Pull Request 上自动执行相同的核心验证。
+
+## 环境变量
+
+复制 `.env.example` 为 `.env`，本地填写真实值；Vercel 上在项目的 Environment Variables 中配置。
+
+最重要的生产变量：
 
 ```dotenv
+BLOG_PASSWORD=
+AUTH_SECRET=
+CHAT_PASSWORD=
+
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
 AI_API_KEY=
 AI_BASE_URL=https://api.openai.com/v1
 AI_MODEL=gpt-4o-mini
-# 人物设定，留空用内置的爱蜜莉雅设定
-AI_SYSTEM_PROMPT=
-# 未登录访客每天合计次数，默认 30，最多 100
-AI_DAILY_LIMIT=30
-# 对话登录暗号，留空沿用 BLOG_PASSWORD
-CHAT_PASSWORD=
+
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_PUBLIC_URL=
 ```
 
-留空 `AI_API_KEY` 时页面只显示「服务尚未连接」，不会发出请求。
+不要把真实密钥提交到 Git。`.env*` 已被忽略，仅 `.env.example` 作为模板保留。
 
-两个部署上的注意点：
+## 鉴权与限流
 
-- 流式响应期间 Vercel 函数一直在跑，`astro.config.mjs` 里的 `maxDuration` 必须大于 `src/lib/chat.ts` 的 `TIMEOUT_MS`（现为 60s > 55s），否则平台先杀掉函数，超时和退还配额的逻辑都来不及执行。Hobby 默认只有 10~15 秒，长回答会被掐断。
-- 计数走共享存储：配了 Upstash Redis 才是全站精确的；没配会回落到进程内存，每个实例各算一份，只是软上限。
+博客、画廊管理和来访记录重置使用签名 HttpOnly Cookie。生产环境必须设置随机、足够长的 `AUTH_SECRET`；代码不会在生产环境回落到公开的开发密钥。
 
-## 博客访问权限
+登录防爆破使用共享固定窗口限流：每个客户端 IP 每分钟最多 10 次尝试。配置 Upstash 后限流跨 Vercel 实例共享；如果已经配置 Redis 但 Redis 临时故障，鉴权限流会 fail closed，而不是静默退化为单实例保护。
 
-博客已加入导航栏。文章 frontmatter 中的 `private` 默认为 `false`，公开文章可直接访问；需要鉴权的文章设置为：
+AI 与 Tavern 共用同一个 burst limiter：
+
+- 匿名：5 次/分钟；
+- 已登录：20 次/分钟；
+- 匿名日配额默认全站合计 30 次，`AI_DAILY_LIMIT` 最大 100；
+- 已登录会话不消耗匿名日配额，但仍受 burst limiter 保护。
+
+音乐公开代理每 IP 每分钟最多 12 次，同时继续受 `MUSIC_DAILY_LIMIT` 的全站上游配额保护。
+
+## AI 对话
+
+`/chat` 为稳定对话页，`/tavern` 为角色状态/长期记忆结构的实验页。
+
+AI 密钥只在 Route Handler 中使用，不会下发到浏览器。聊天正文保存在浏览器 `localStorage`，服务端不会持久化消息。
+
+上游只要求兼容 OpenAI 风格 `/chat/completions` 流式协议，可配置 OpenAI、DeepSeek、Moonshot、OpenRouter 或兼容网关。
+
+Tavern v1 当前仍是浏览器持有 Persona / State / Memory 的 PoC；服务端会校验结构和长度，但这些状态还不是服务端权威状态机。后续设计见 `docs/chat-architecture.md`。
+
+## 博客与私密文章
+
+文章位于：
+
+```text
+src/content/blog/*.md
+```
+
+Frontmatter 中设置：
 
 ```yaml
 private: true
 ```
 
-未登录用户不会看到私有文章的列表项，直接打开私有文章链接会跳转到登录页。
+即可把文章标记为私密。
 
-## 开发
+未登录用户：
 
-```sh
-npm install
-npm run dev
-npm run astro -- check
-npm run build
-```
+- 不会在博客列表看到私密文章；
+- 直接访问正文会跳转登录页；
+- Metadata 不会暴露私密文章标题和摘要，并设置 `noindex/noarchive`。
+
+博客 Markdown 来自仓库内受信任内容，当前由 `marked` 转换后渲染。如果未来开放后台投稿，必须在渲染前增加 HTML sanitizer。
 
 ## 画廊与 Cloudflare R2
 
-画廊现在支持两种来源：
+画廊支持两种来源：
 
-- 未配置 R2 时，读取 `src/content/gallery/*.yaml` 和 `public/gallery/`，现有站点行为不变。
-- 配置 R2 后，`/gallery/manage` 可批量选择图片。浏览器会生成 WebP 预览图/缩略图并直传 R2，图片清单保存在 `gallery/manifest.json`；R2 图片与仓库里的 YAML 内容会合并显示，方便逐步迁移。
+1. 仓库内容：`src/content/gallery/*.yaml` + `public/gallery/`；
+2. R2 远程馆藏：通过 `/gallery/manage` 管理。
 
-Vercel 环境变量：
+上传流程：
 
-```dotenv
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET=
-R2_PUBLIC_URL=https://img.example.com
+```text
+浏览器计算 SHA-256
+  → 服务端签发短时 PUT URL
+  → 浏览器直传 gallery/staging/<uuid>/
+  → 服务端校验大小与原图 SHA-256
+  → R2 内复制为正式 originals / previews / thumbnails
+  → 基于 manifest ETag 条件写入 gallery/manifest.json
+  → 删除 staging 对象
 ```
 
-管理页复用博客登录会话，因此还需要配置 `BLOG_PASSWORD` 和 `AUTH_SECRET`。登录后访问 `/gallery/manage`。
+Manifest 更新使用 R2 `If-Match / If-None-Match` 条件写和重试，避免多实例并发上传/删除时发生 lost update。
 
-Cloudflare 控制台需要完成：
+### R2 生命周期规则
 
-1. 创建 R2 bucket，例如 `justemt-gallery`。
-2. 创建限定到这个 bucket 的 **Object Read & Write** API Token，将 Access Key ID 和 Secret Access Key 填入 Vercel。
-3. 给 bucket 绑定公开自定义域名，例如 `img.example.com`，将该域名填入 `R2_PUBLIC_URL`。`r2.dev` 仅建议用于测试。
-4. 配置 bucket CORS，允许站点域名和本地开发端口执行 `PUT`，并允许 `Content-Type`、`Cache-Control` 请求头：
+建议在 Cloudflare R2 为前缀：
+
+```text
+gallery/staging/
+```
+
+配置 **1 天后自动删除** 的生命周期规则。这样用户拿到预签名 URL 后中途关闭页面产生的 staging 孤儿对象会自动清理，而正式馆藏不受影响。
+
+R2 CORS 至少允许站点域名和本地 Next.js 开发地址执行 `PUT`：
 
 ```json
 [
   {
     "AllowedOrigins": [
       "https://你的站点域名",
-      "http://localhost:4321"
+      "http://localhost:3000"
     ],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedHeaders": ["Content-Type", "Cache-Control"],
@@ -97,10 +164,38 @@ Cloudflare 控制台需要完成：
 ]
 ```
 
-5. 部署后打开 `/gallery/manage`，选择图片上传。上传完成后可删除仓库里的旧图片和对应 YAML；删除前建议先确认 R2 画廊显示正常。
+## 来访雪笺
 
-R2 官方文档：
+公开页面记录匿名来访：
 
-- [S3 API 凭据](https://developers.cloudflare.com/r2/api/s3/tokens/)
-- [公开 bucket 与自定义域名](https://developers.cloudflare.com/r2/buckets/public-buckets/)
-- [CORS](https://developers.cloudflare.com/r2/buckets/cors/)
+- Cookie 使用随机 UUID，但 Redis 内部身份键使用其 SHA-256 摘要；
+- 完整 IP 不写入公开记录，只保存脱敏后的显示值；
+- 同一访客 30 分钟内连续浏览只记作一次来访；
+- 今日统计使用短期 TTL；
+- `totalVisitors` / `totalVisits` 为真正的永久累计计数，不再一年后自动归零。
+
+生产环境建议配置 Upstash；不配置时会回落到当前 Serverless 实例内存，统计只能视为尽力而为。
+
+如果项目从 Vercel 迁到自建反向代理，可通过 `TRUSTED_IP_HEADER` 指定由代理覆盖、客户端无法伪造的真实 IP 请求头。
+
+## 安全响应头
+
+Next.js 全局响应目前设置：
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- 限制 Camera / Microphone / Geolocation / Payment / USB 的 `Permissions-Policy`
+- `Cross-Origin-Opener-Policy: same-origin`
+
+完整 CSP 暂未强制启用，因为 Next.js hydration 与现有首屏主题脚本需要先设计 nonce 策略；该事项记录在审计文档中，不应简单通过 `unsafe-inline` 形式草率上线。
+
+## 审计与维护
+
+本轮 Next.js 迁移后的系统审计记录：
+
+```text
+docs/audit-2026-09.md
+```
+
+其中记录已修复问题、仍保留的风险、验证方法和后续优先级。

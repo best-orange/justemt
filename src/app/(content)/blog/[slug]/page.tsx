@@ -12,9 +12,31 @@ interface BlogPostPageProps {
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
   const post = await getBlogPost(slug);
+  if (!post) {
+    return {
+      title: '博客 · justEMT',
+      description: 'Emilia 的博客文章与心情笔记。',
+    };
+  }
+
+  // 私密文章的正文虽然会在 page render 时重定向，但 metadata 是独立生成的。
+  // 未鉴权时不能把标题/摘要泄漏给爬虫、链接预览器或直接请求 metadata 的客户端。
+  if (post.private) {
+    const jar = await cookies();
+    const authenticated = verifyToken(jar.get(AUTH_COOKIE)?.value);
+    if (!authenticated) {
+      return {
+        title: '私密文章 · justEMT',
+        description: '这篇笔记需要验证后才能查看。',
+        robots: { index: false, follow: false, noarchive: true },
+      };
+    }
+  }
+
   return {
-    title: post ? `${post.title} · justEMT` : '博客 · justEMT',
-    description: post?.description ?? 'Emilia 的博客文章与心情笔记。',
+    title: `${post.title} · justEMT`,
+    description: post.description || 'Emilia 的博客文章与心情笔记。',
+    robots: post.private ? { index: false, follow: false, noarchive: true } : undefined,
   };
 }
 
@@ -64,7 +86,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         )}
       </header>
 
-      {/* 博客正文来自仓库内的 Markdown，与 Astro 版享有同等的信任级别 */}
+      {/* 博客正文来自仓库内的 Markdown；若未来开放后台投稿，应在这里之前增加 HTML sanitizer。 */}
       <div
         className="prose prose-slate mt-8 max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-blue-600 dark:prose-a:text-blue-400"
         dangerouslySetInnerHTML={{ __html: post.html }}

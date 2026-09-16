@@ -15,15 +15,17 @@ const restToken = () => env('UPSTASH_REDIS_REST_TOKEN') ?? env('KV_REST_API_TOKE
 
 export interface Store {
   readonly kind: 'redis' | 'memory';
-  /** 原子自增并返回自增后的值；键不存在时顺带设上 TTL */
-  incr(key: string, ttlSeconds: number): Promise<number>;
+  /** 原子自增并返回自增后的值；传 ttlSeconds 时只在键首次创建时设置 TTL，不传则永久保存。 */
+  incr(key: string, ttlSeconds?: number): Promise<number>;
   decr(key: string): Promise<void>;
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlSeconds: number): Promise<void>;
   /** 删除一个键；键不存在时也算成功。 */
   del(key: string): Promise<void>;
-  /** 仅在键不存在时写入；返回是否写入成功。 */
-  setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean>;
+  /** 仅在键不存在时写入；传 ttlSeconds 时设置 TTL，不传则永久保存。 */
+  setIfAbsent(key: string, value: string, ttlSeconds?: number): Promise<boolean>;
+  /** 值仍与 expected 一致时才删除；用于释放带 token 的分布式锁。 */
+  compareAndDelete(key: string, expected: string): Promise<boolean>;
   /** 在列表头部写入一项，并将列表裁剪到指定长度。 */
   listPrepend(key: string, value: string, maxItems: number): Promise<void>;
   /** 读取列表的一段内容。 */
@@ -48,10 +50,12 @@ const memoryStore: Store = {
   kind: 'memory',
   async incr(key, ttlSeconds) {
     const next = Number(memGet(key) ?? 0) + 1;
-    // 键已存在时保留原有到期时间，避免每次自增都把 TTL 续上
     const existing = mem.get(key);
-    const expiresAt =
-      existing && Date.now() <= existing.expiresAt
+    // 不传 TTL 代表调用方明确要求永久计数；若是从旧版本迁移来的有限 TTL 键，
+    // 这里也会顺手转成永久，避免“累计”计数一年后归零。
+    const expiresAt = ttlSeconds === undefined
+      ? Number.POSITIVE_INFINITY
+      : existing && Date.now() <= existing.expiresAt
         ? existing.expiresAt
         : Date.now() + ttlSeconds * 1000;
     mem.set(key, { value: String(next), expiresAt });
@@ -72,8 +76,23 @@ const memoryStore: Store = {
     mem.delete(key);
   },
   async setIfAbsent(key, value, ttlSeconds) {
-    if (memGet(key) !== null) return false;
-    mem.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+    const existingValue = memGet(key);
+    if (existingValue !== null) {
+      if (ttlSeconds === undefined) {
+        const existing = mem.get(key);
+        if (existing) mem.set(key, { ...existing, expiresAt: Number.POSITIVE_INFINITY });
+      }
+      return false;
+    }
+    mem.set(key, {
+      value,
+      expiresAt: ttlSeconds === undefined ? Number.POSITIVE_INFINITY : Date.now() + ttlSeconds * 1000,
+    });
+    return true;
+  },
+  async compareAndDelete(key, expected) {
+    if (memGet(key) !== expected) return false;
+    mem.delete(key);
     return true;
   },
   async listPrepend(key, value, maxItems) {
@@ -139,6 +158,14 @@ async function pipeline(commands: (string | number)[][]): Promise<any[]> {
 const redisStore: Store = {
   kind: 'redis',
   async incr(key, ttlSeconds) {
+    if (ttlSeconds === undefined) {
+      // PERSIST 负责把旧版本中残留 TTL 的累计计数原地迁移成永久键。
+      const [n] = await pipeline([
+        ['INCR', key],
+        ['PERSIST', key],
+      ]);
+      return Number(n);
+    }
     // INCR 是原子的；NX 让 TTL 只在键首次创建时设置，后续自增不会把过期时间续上
     const [n] = await pipeline([
       ['INCR', key],
@@ -160,8 +187,20 @@ const redisStore: Store = {
     await pipeline([['DEL', key]]);
   },
   async setIfAbsent(key, value, ttlSeconds) {
+    if (ttlSeconds === undefined) {
+      const [result] = await pipeline([
+        ['SET', key, value, 'NX'],
+        ['PERSIST', key],
+      ]);
+      return result === 'OK';
+    }
     const [result] = await pipeline([['SET', key, value, 'EX', ttlSeconds, 'NX']]);
     return result === 'OK';
+  },
+  async compareAndDelete(key, expected) {
+    const script = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end";
+    const [result] = await pipeline([['EVAL', script, 1, key, expected]]);
+    return Number(result) === 1;
   },
   async listPrepend(key, value, maxItems) {
     await pipeline([
@@ -184,6 +223,9 @@ let healthy = true;
 /**
  * Redis 不可用时不能让站点跟着挂，所以每个方法都包一层 try：
  * 失败就退回内存实现，只是精度下降。
+ *
+ * 安全敏感调用（例如登录防爆破）会在更上层通过 storeStatus() 检测降级，
+ * 并选择 fail closed；这里继续保持通用 Store 的高可用语义。
  */
 function guarded(primary: Store, fallback: Store): Store {
   const wrap = <K extends keyof Omit<Store, 'kind'>>(name: K): Store[K] =>
@@ -210,6 +252,7 @@ function guarded(primary: Store, fallback: Store): Store {
     set: wrap('set'),
     del: wrap('del'),
     setIfAbsent: wrap('setIfAbsent'),
+    compareAndDelete: wrap('compareAndDelete'),
     listPrepend: wrap('listPrepend'),
     listRange: wrap('listRange'),
   };
@@ -224,7 +267,7 @@ export function store(): Store {
 }
 
 /**
- * 供 /api/music?action=quota 展示。
+ * 供诊断接口展示。
  * configured 是配置意图，effective 是此刻真正在用的 —— Redis 挂掉时两者会不一致，
  * 排查问题时这个区分很关键。
  */

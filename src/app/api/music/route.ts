@@ -1,6 +1,8 @@
 import { MusicApiError, type Track, fetchPlaylist, fetchSongUrl, playlistId } from '@/lib/music';
 import { envPositiveNumber } from '@/lib/env';
 import { usage } from '@/lib/quota';
+import { clientIp } from '@/lib/request-ip';
+import { checkSharedRateLimit } from '@/lib/shared-rate-limit';
 import { store } from '@/lib/store';
 
 export const maxDuration = 30;
@@ -69,6 +71,18 @@ async function getSongUrl(id: string): Promise<string | null> {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const action = url.searchParams.get('action');
+
+  // quota 只是读本地/Redis 计数，不会调用上游；其余公开入口限制短时请求速度，
+  // 防止单个客户端通过制造缓存 miss 快速耗光整站的音乐 API 日配额。
+  if (action !== 'quota') {
+    const burst = await checkSharedRateLimit({
+      scope: 'music-public',
+      identifier: clientIp(request),
+      windowSeconds: 60,
+      max: 12,
+    });
+    if (burst.limited) return json({ ok: false, message: '音乐请求太频繁，请稍后再试' }, 429, 'no-store');
+  }
 
   try {
     if (action === 'playlist') {

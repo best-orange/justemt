@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { verifyPassword } from '@/lib/auth';
-import { createRateLimiter } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/request-ip';
+import { checkSharedRateLimit } from '@/lib/shared-rate-limit';
 import {
   createVisitorId,
   isTrackablePath,
@@ -14,11 +14,6 @@ import {
 } from '@/lib/visitors';
 
 export const maxDuration = 30;
-
-/** 重置接口的简易限流：每 IP 每分钟最多 5 次尝试，防止在线爆破 */
-const isResetRateLimited = createRateLimiter({ windowMs: 60_000, max: 5 });
-/** 上报接口的限流：正常访客每个浏览会话只上报一次；压住伪造新身份刷数字的速度 */
-const isPostRateLimited = createRateLimiter({ windowMs: 60_000, max: 20 });
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -40,7 +35,14 @@ export async function GET() {
 
 /** POST /api/visitors —— 浏览器记录一次公开页面来访。 */
 export async function POST(request: Request) {
-  if (isPostRateLimited(clientIp(request))) {
+  const ip = clientIp(request);
+  const burst = await checkSharedRateLimit({
+    scope: 'visitors-write',
+    identifier: ip,
+    windowSeconds: 60,
+    max: 20,
+  });
+  if (burst.limited) {
     return json({ ok: false, message: '操作过于频繁，请稍后再试' }, 429);
   }
 
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const recorded = await recordVisit({ visitorId, path, ip: clientIp(request) });
+    const recorded = await recordVisit({ visitorId, path, ip });
     return json({ ok: true, recorded });
   } catch (error) {
     console.error('[visitors] 写入记录失败：', error);
@@ -81,8 +83,17 @@ export async function POST(request: Request) {
  * 只删记录列表，累计访客与累计来访次数保留。
  */
 export async function DELETE(request: Request) {
-  if (isResetRateLimited(clientIp(request))) {
-    return json({ ok: false, message: '尝试过于频繁，请稍后再试' }, 429);
+  const rate = await checkSharedRateLimit({
+    scope: 'visitors-reset',
+    identifier: clientIp(request),
+    windowSeconds: 60,
+    max: 5,
+    strictWhenRedisConfigured: true,
+  });
+  if (rate.limited) {
+    return rate.degraded
+      ? json({ ok: false, message: '验证服务暂时不可用，请稍后再试' }, 503)
+      : json({ ok: false, message: '尝试过于频繁，请稍后再试' }, 429);
   }
 
   let body: { password?: unknown };

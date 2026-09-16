@@ -2,13 +2,21 @@
  * globals.css 保留了迁移前的多层壁纸声明；CSS 中多个 url() 是叠加背景而不是 fallback，
  * 浏览器会为可见层请求每一张图片。这里作为最终级联覆盖，确保每种“主题 × 设备”
  * 只出现一个位图 URL，渐变仍作为视觉叠层与无图时的兜底背景。
+ *
+ * 位图由 scripts/compress-hero.py 重新编码：桌面缩到 2560px 宽、移动缩到 1280px 宽，
+ * 输出 WebP（主选）与同名压缩 JPEG（兜底）。每张壁纸只声明一次 image-set()，
+ * 浏览器按 type() 顺序挑选首个支持的格式，因此一次只会请求一张图。
  */
+
 .hero-bg {
   background-image:
     radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
     radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
     radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
-    url("/hero-light.jpg"),
+    image-set(
+      url("/hero-light.webp") type("image/webp"),
+      url("/hero-light.jpg") type("image/jpeg")
+    ),
     linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
 }
 
@@ -18,7 +26,10 @@
       radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
       radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
       radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
-      url("/hero-light-mobile.jpg"),
+      image-set(
+        url("/hero-light-mobile.webp") type("image/webp"),
+        url("/hero-light-mobile.jpg") type("image/jpeg")
+      ),
       linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
   }
 }
@@ -29,7 +40,10 @@
     radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
     radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
     radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
-    url("/hero.jpg"),
+    image-set(
+      url("/hero.webp") type("image/webp"),
+      url("/hero.jpg") type("image/jpeg")
+    ),
     linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
 }
 
@@ -40,7 +54,10 @@
       radial-gradient(ellipse 60% 45% at 25% 20%, rgba(160, 126, 240, 0.35), transparent 60%),
       radial-gradient(ellipse 50% 40% at 78% 30%, rgba(94, 168, 224, 0.30), transparent 60%),
       radial-gradient(ellipse 70% 50% at 50% 100%, rgba(40, 50, 110, 0.6), transparent 70%),
-      url("/hero-dark-mobile.jpg"),
+      image-set(
+        url("/hero-dark-mobile.webp") type("image/webp"),
+        url("/hero-dark-mobile.jpg") type("image/jpeg")
+      ),
       linear-gradient(165deg, #0a0f26 0%, #141c42 45%, #232c5e 80%, #2e3a75 100%);
   }
 }

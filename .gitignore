@@ -41,3 +41,7 @@ CLAUDE.md
 .agents/
 .claude/
 skills-lock.json
+.workbuddy-ai/
+
+# 本地辅助与探针临时目录
+.probe-dir*/

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ThemeToggle from './theme-toggle';
+import { LiquidGlass, GlassIconButton } from './liquid-glass';
 
 const links = [
   { href: '/', label: '首页' },
@@ -28,15 +29,23 @@ export default function Nav() {
   useEffect(() => {
     const onPointerMove = (event: PointerEvent) => {
       if (!(event.target instanceof Element)) return;
-      const control = event.target.closest<HTMLElement>('.nav-glass-control');
+      const control = event.target.closest<HTMLElement>(
+        '.nav-glass-control, .glass-pill, .tag-chip, .glass-btn, .glass-icon-btn, .chat__chip, .chat__suggestion, .chat__ghost-button, .chat__send, .hero-subtitle-capsule'
+      );
       if (!control) return;
       const rect = control.getBoundingClientRect();
-      control.style.setProperty('--nav-light-x', `${event.clientX - rect.left}px`);
-      control.style.setProperty('--nav-light-y', `${event.clientY - rect.top}px`);
+      const px = event.clientX - rect.left;
+      const py = event.clientY - rect.top;
+      control.style.setProperty('--nav-light-x', `${px}px`);
+      control.style.setProperty('--nav-light-y', `${py}px`);
+      control.style.setProperty('--glass-x', `${((px / rect.width) * 100).toFixed(1)}%`);
+      control.style.setProperty('--glass-y', `${((py / rect.height) * 100).toFixed(1)}%`);
     };
     const onPointerDown = (event: PointerEvent) => {
       if (!(event.target instanceof Element)) return;
-      const control = event.target.closest<HTMLElement>('.nav-glass-control');
+      const control = event.target.closest<HTMLElement>(
+        '.nav-glass-control, .glass-pill, .tag-chip, .glass-btn, .glass-icon-btn, .chat__chip, .chat__suggestion, .chat__ghost-button, .chat__send, .hero-subtitle-capsule'
+      );
       if (!control) return;
       const rect = control.getBoundingClientRect();
       control.style.setProperty('--nav-press-x', `${event.clientX - rect.left}px`);
@@ -90,33 +99,53 @@ export default function Nav() {
       className="fixed inset-x-0 top-0 z-40"
     >
       <nav className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4">
-        <Link
-          href="/"
-          className="nav-glass-control nav-brand rounded-full px-3.5 py-2 font-display text-lg font-bold tracking-wide"
-        >
-          <span className={`nav-brand__label relative z-[1] ${brandLabelClass}`}>
-            Emilia
-          </span>
+        <Link href="/" className="inline-block">
+          <LiquidGlass
+            radius={999}
+            bevel={8}
+            refraction={28}
+            blur={0.2}
+            dispersion={2.2}
+            tint="transparent"
+            className="transition-transform hover:-translate-y-0.5"
+            contentClassName="px-3.5 py-1.5 font-display text-lg font-bold tracking-wide"
+          >
+            <span className={brandLabelClass}>Emilia</span>
+          </LiquidGlass>
         </Link>
 
         {/* 桌面端：横向链接 */}
-        <div className="hidden items-center gap-1 sm:flex">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`nav-glass-control nav-link rounded-full px-3.5 py-2 text-sm font-medium${isActive(link.href) ? ' is-active' : ''}`}
-            >
-              <span className="relative z-[1]">{link.label}</span>
-            </Link>
-          ))}
+        <div className="hidden items-center gap-1.5 sm:flex">
+          {links.map((link) => {
+            const active = isActive(link.href);
+            return (
+              <Link key={link.href} href={link.href} className="inline-block">
+                <LiquidGlass
+                  radius={999}
+                  bevel={7}
+                  refraction={24}
+                  blur={0.2}
+                  dispersion={2.0}
+                  tint={active ? 'rgba(160, 126, 240, 0.25)' : 'transparent'}
+                  className="transition-transform hover:-translate-y-0.5"
+                  contentClassName={`px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                    active
+                      ? 'text-violet-700 dark:text-lilac-200'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white'
+                  }`}
+                >
+                  <span>{link.label}</span>
+                </LiquidGlass>
+              </Link>
+            );
+          })}
           <ThemeToggle />
         </div>
 
         {/* 移动端：主题开关 + 汉堡按钮 */}
-        <div className="flex items-center gap-1 sm:hidden">
+        <div className="flex items-center gap-1.5 sm:hidden">
           <ThemeToggle />
-          <button
+          <GlassIconButton
             id="menu-btn"
             data-menu-toggle
             type="button"
@@ -124,12 +153,12 @@ export default function Nav() {
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             onClick={() => setMenuOpen((open) => !open)}
-            className={`nav-glass-control nav-link inline-flex h-10 w-10 items-center justify-center rounded-full ${menuButtonClass}`}
+            wrapperClassName="!p-0"
           >
             {/* 三横线 */}
             <svg
               id="menu-icon-open"
-              className={`relative z-[1] h-5 w-5${menuOpen ? ' hidden' : ''}`}
+              className={`h-5 w-5${menuOpen ? ' hidden' : ''}`}
               fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -137,12 +166,12 @@ export default function Nav() {
             {/* 关闭叉 */}
             <svg
               id="menu-icon-close"
-              className={`relative z-[1] h-5 w-5${menuOpen ? '' : ' hidden'}`}
+              className={`h-5 w-5${menuOpen ? '' : ' hidden'}`}
               fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
-          </button>
+          </GlassIconButton>
         </div>
       </nav>
 

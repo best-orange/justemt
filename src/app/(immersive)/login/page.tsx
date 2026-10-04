@@ -32,7 +32,6 @@ export default async function LoginPage({
   return (
     <section className="relative z-10 flex min-h-svh items-center justify-center overflow-hidden px-4 pt-16">
       <Particles density={0.7} />
-      <div className="absolute inset-0 -z-[6] bg-night-950/60"></div>
 
       <div className="glass w-full max-w-sm rounded-3xl p-8 text-center">
         <svg className="mx-auto h-10 w-10 text-lilac-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">

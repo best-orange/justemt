@@ -18,15 +18,15 @@ export default function VisitorsPage() {
               <p className="mt-3 text-slate-600 dark:text-slate-300">每一份来访都会留下微光，IP 后半部分已用星号隐藏。</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <button id="visitor-refresh" type="button" className="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">刷新</button>
+              <button id="visitor-refresh" type="button" className="glass-btn !px-3 !py-1.5 text-xs font-medium">刷新</button>
               <button
                 id="visitor-reset-toggle"
                 type="button"
                 aria-expanded="false"
                 aria-controls="visitor-reset-form"
-                className="rounded-full border border-rose-400/30 px-3 py-1.5 text-xs text-rose-500 transition-colors hover:border-rose-400 hover:text-rose-600 dark:text-rose-300 dark:hover:text-rose-200"
+                className="glass-btn !px-3 !py-1.5 text-xs font-medium !text-rose-500 dark:!text-rose-300"
               >重置记录</button>
-              <a href="/" className="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">返回大厅</a>
+              <a href="/" className="glass-btn !px-3 !py-1.5 text-xs font-medium">返回大厅</a>
             </div>
           </div>
         </header>
@@ -50,12 +50,12 @@ export default function VisitorsPage() {
             />
             <button
               type="submit"
-              className="rounded-xl bg-gradient-to-r from-rose-500 to-lilac-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-rose-500/20 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              className="glass-btn glass-btn--primary !px-4 !py-2 text-sm font-medium"
             >确认清空</button>
             <button
               id="visitor-reset-cancel"
               type="button"
-              className="rounded-xl border border-lilac-400/30 px-4 py-2 text-sm text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200"
+              className="glass-btn !px-4 !py-2 text-sm font-medium"
             >取消</button>
           </div>
           <p id="visitor-reset-message" className="mt-3 hidden text-sm" role="status"></p>

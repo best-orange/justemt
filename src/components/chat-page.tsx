@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
+import { GlassButton, LiquidGlass } from './liquid-glass';
 
 /** 只在本地留存对话，服务端不保存任何内容 */
 const STORAGE_KEY = 'justemt:chat:history';
@@ -382,9 +383,21 @@ export default function ChatPage({ configured, unlimited, limit }: ChatPageProps
               随便问都可以。技术问题、心里话，或者只是想有人陪着说说话。
             </p>
             <div className="chat__suggestions">
-              <button type="button" className="chat__suggestion" data-prompt="给我讲讲你眼中的雪，好吗？" onClick={() => submit('给我讲讲你眼中的雪，好吗？')}>给我讲讲你眼中的雪</button>
-              <button type="button" className="chat__suggestion" data-prompt="帮我用 TypeScript 写一个带超时的 fetch 封装" onClick={() => submit('帮我用 TypeScript 写一个带超时的 fetch 封装')}>写一个带超时的 fetch</button>
-              <button type="button" className="chat__suggestion" data-prompt="今天有点累，说点让人安心的话吧。" onClick={() => submit('今天有点累，说点让人安心的话吧。')}>今天有点累</button>
+              <button type="button" onClick={() => submit('给我讲讲你眼中的雪，好吗？')}>
+                <LiquidGlass radius={999} bevel={8} refraction={24} blur={0.2} dispersion={2.0} tint="transparent" contentClassName="px-4 py-1.5 text-xs text-slate-700 dark:text-slate-200">
+                  给我讲讲你眼中的雪
+                </LiquidGlass>
+              </button>
+              <button type="button" onClick={() => submit('帮我用 TypeScript 写一个带超时的 fetch 封装')}>
+                <LiquidGlass radius={999} bevel={8} refraction={24} blur={0.2} dispersion={2.0} tint="transparent" contentClassName="px-4 py-1.5 text-xs text-slate-700 dark:text-slate-200">
+                  写一个带超时的 fetch
+                </LiquidGlass>
+              </button>
+              <button type="button" onClick={() => submit('今天有点累，说点让人安心的话吧。')}>
+                <LiquidGlass radius={999} bevel={8} refraction={24} blur={0.2} dispersion={2.0} tint="transparent" contentClassName="px-4 py-1.5 text-xs text-slate-700 dark:text-slate-200">
+                  今天有点累
+                </LiquidGlass>
+              </button>
             </div>
           </div>
 
@@ -447,9 +460,15 @@ export default function ChatPage({ configured, unlimited, limit }: ChatPageProps
               )}
             </p>
             <button id="chat-stop" type="button" className={`chat__ghost-button${busy ? '' : ' hidden'}`} onClick={() => stop()}>停止</button>
-            <button id="chat-send" type="submit" className="chat__send" disabled={!configured || busy}>
+            <GlassButton
+              id="chat-send"
+              type="submit"
+              disabled={!configured || busy}
+              variant="accent"
+              material={{ radius: 999, bevel: 9, refraction: 26, blur: 0.2, dispersion: 2.2, tint: 'transparent' }}
+            >
               <span id="chat-send-label">{busy ? '回答中…' : '发送'}</span>
-            </button>
+            </GlassButton>
           </div>
         </form>
       </div>

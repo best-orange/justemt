@@ -20,7 +20,7 @@ export default function GalleryPage() {
                 冰晶、微光与雪夜。点击任意作品查看大图。
               </p>
             </div>
-            <a href="/gallery/manage" className="hidden rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200 sm:inline-flex">
+            <a href="/gallery/manage" className="glass-btn hidden !px-3.5 !py-1.5 text-xs font-medium sm:inline-flex">
               管理馆藏
             </a>
           </div>

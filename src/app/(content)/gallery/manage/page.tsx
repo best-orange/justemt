@@ -26,8 +26,8 @@ export default async function GalleryManagePage() {
             <p className="mt-3 text-slate-600 dark:text-slate-300">图片由浏览器生成预览图后直传 R2，登记时服务器会校验原图完整性。</p>
           </div>
           <div className="flex shrink-0 gap-2">
-            <a href="/visitors" className="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">来访雪笺</a>
-            <a href="/gallery" className="rounded-full border border-lilac-400/30 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-lilac-400 hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200">返回画廊</a>
+            <a href="/visitors" className="glass-btn !px-3 !py-1.5 text-xs font-medium">来访雪笺</a>
+            <a href="/gallery" className="glass-btn !px-3 !py-1.5 text-xs font-medium">返回画廊</a>
           </div>
         </div>
 
@@ -55,7 +55,7 @@ export default async function GalleryManagePage() {
             <textarea id="description-input" rows={3} maxLength={500} placeholder="可选" className="mt-2 w-full resize-y rounded-xl border border-lilac-400/25 bg-white/50 px-3 py-2.5 text-sm outline-none transition-colors focus:border-lilac-400 dark:bg-night-950/30"></textarea>
           </label>
           <div className="mt-6 flex flex-wrap items-center gap-4">
-            <button id="upload-button" type="submit" className="rounded-xl bg-gradient-to-r from-lilac-500 to-ice-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-lilac-500/20 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50">上传到 R2</button>
+            <button id="upload-button" type="submit" className="glass-btn glass-btn--primary !px-5 !py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50">上传到 R2</button>
             <p id="upload-status" className="text-sm text-slate-500 dark:text-slate-300" role="status"></p>
           </div>
         </form>

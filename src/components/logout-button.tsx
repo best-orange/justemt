@@ -12,7 +12,7 @@ export default function LogoutButton() {
       id="logout-btn"
       type="button"
       onClick={onLogout}
-      className="shrink-0 rounded-lg border border-lilac-400/30 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:text-violet-700 dark:text-slate-300 dark:hover:text-lilac-200"
+      className="glass-btn shrink-0 !px-3.5 !py-1.5 text-xs font-medium"
     >
       重新上锁
     </button>

@@ -2,7 +2,7 @@
 export default function ContentLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="site-main mx-auto max-w-3xl px-4 pb-12 pt-24">
-      <div className="site-content-surface">{children}</div>
+      <div className="site-content-surface" data-adaptive-bg>{children}</div>
     </main>
   );
 }

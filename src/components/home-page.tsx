@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Particles from '@/components/particles';
+import { LiquidGlass, GlassIconButton } from '@/components/liquid-glass';
 import type { Quote } from '@/data/quotes';
 
 interface HomePageProps {
@@ -180,22 +181,29 @@ export default function HomePage({ quotes }: HomePageProps) {
       <section className="hero relative z-10 flex h-svh items-center justify-center overflow-hidden">
         <Particles />
 
-        <div className="px-4 text-center">
-          <p className="font-display text-sm tracking-[0.5em] text-[#4a4368]/70 dark:text-white/80 sm:text-base">
-            エミリアたん、マジ天使
-          </p>
-          <h1 className="hero-title mt-4 font-display text-7xl font-black tracking-tight sm:text-9xl">
-            E·M·T
-          </h1>
-          <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-[#3d3658]/85 drop-shadow dark:text-white/80 sm:text-lg">
-            <span id="typewriter"></span><span className="type-caret"></span>
-          </p>
+        {/* 字幕区域：官方 LiquidGlass 容器 */}
+        <div className="pointer-events-none absolute bottom-20 left-1/2 z-20 w-full max-w-2xl -translate-x-1/2 px-4 text-center sm:bottom-24">
+          <LiquidGlass
+            radius={999}
+            bevel={18}
+            refraction={56}
+            blur={0.2}
+            dispersion={1.6}
+            tint="transparent"
+            className="hero-subtitle-capsule pointer-events-auto inline-block"
+            contentClassName="flex min-h-[44px] items-center justify-center px-6 py-2 sm:min-h-[48px] sm:px-8"
+            data-adaptive-bg
+          >
+            <p className="font-display text-base font-medium tracking-wide text-slate-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)] dark:text-violet-950 sm:text-lg">
+              <span id="typewriter"></span><span className="type-caret text-lilac-500 dark:text-lilac-400"></span>
+            </p>
+          </LiquidGlass>
         </div>
 
         <a
           href="#content"
           aria-label="向下滚动"
-          className="scroll-hint absolute bottom-8 left-1/2 -translate-x-1/2 text-[#4a4368]/70 transition-colors hover:text-[#2e2848] dark:text-white/70 dark:hover:text-white"
+          className="scroll-hint absolute bottom-6 left-1/2 -translate-x-1/2 text-white/70 transition-colors hover:text-white drop-shadow sm:bottom-8"
         >
           <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -204,7 +212,7 @@ export default function HomePage({ quotes }: HomePageProps) {
       </section>
 
       {/* ===== 下方内容 ===== */}
-      <div ref={rootRef} id="content" data-home-page className="relative z-10 mx-auto max-w-4xl px-4 py-24">
+      <div ref={rootRef} id="content" data-home-page className="relative z-10 mx-auto max-w-4xl px-4 py-24" data-adaptive-bg>
         {/* 引言 */}
         <section className="reveal text-center">
           <h2 className="font-display text-3xl font-bold tracking-wide sm:text-4xl">
@@ -219,27 +227,27 @@ export default function HomePage({ quotes }: HomePageProps) {
 
         {/* 名台词轮播 */}
         <section className="reveal mt-24">
-          <div className="glass glass--liquid relative overflow-hidden rounded-3xl px-8 py-12 text-center sm:px-16">
+          <div className="glass glass--liquid relative overflow-hidden rounded-3xl px-8 py-12 text-center sm:px-16" data-adaptive-bg>
             <svg className="mx-auto h-8 w-8 text-lilac-400/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M9.5 8C7 8 5 10 5 12.5S7 17 9.5 17c.4 0 .8-.1 1.1-.2C10 18.4 8.6 19.6 7 20.2l.6 1.3c3.4-1 5.9-4.2 5.9-8C13.5 10.4 11.8 8 9.5 8Zm9 0C16 8 14 10 14 12.5S16 17 18.5 17c.4 0 .8-.1 1.1-.2-.6 1.6-2 2.8-3.6 3.4l.6 1.3c3.4-1 5.9-4.2 5.9-8 0-3.1-1.7-5.5-4-5.5Z" />
             </svg>
             <div id="quote-carousel" className="relative mt-6 min-h-32">
-              <button
+              <GlassIconButton
                 id="quote-prev"
                 type="button"
                 aria-label="上一条台词"
-                className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 text-lilac-400/60 transition-colors hover:text-lilac-500 sm:-left-10 dark:text-lilac-300/60 dark:hover:text-lilac-200"
+                wrapperClassName="absolute -left-4 top-1/2 z-10 -translate-y-1/2 sm:-left-12"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-              </button>
-              <button
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+              </GlassIconButton>
+              <GlassIconButton
                 id="quote-next"
                 type="button"
                 aria-label="下一条台词"
-                className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 text-lilac-400/60 transition-colors hover:text-lilac-500 sm:-right-10 dark:text-lilac-300/60 dark:hover:text-lilac-200"
+                wrapperClassName="absolute -right-4 top-1/2 z-10 -translate-y-1/2 sm:-right-12"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-              </button>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+              </GlassIconButton>
               {quotes.map((quote, i) => (
                 <blockquote key={quote.zh} className={`quote-slide${i === 0 ? ' is-active' : ''}`}>
                   <p className="font-display text-xl font-bold leading-relaxed text-slate-800 dark:text-slate-100 sm:text-2xl">
@@ -257,7 +265,7 @@ export default function HomePage({ quotes }: HomePageProps) {
                 <button
                   key={i}
                   aria-label={`第 ${i + 1} 条`}
-                  className={`quote-dot h-1.5 rounded-full transition-all duration-300 ${i === 0 ? 'w-6 bg-lilac-400' : 'w-1.5 bg-lilac-400/30'}`}
+                  className={`quote-dot h-2 rounded-full transition-all duration-300 ${i === 0 ? 'w-7 bg-lilac-400/80 shadow-sm' : 'w-2 bg-lilac-400/25 hover:bg-lilac-400/40'}`}
                   data-index={i}
                 />
               ))}
@@ -271,8 +279,18 @@ export default function HomePage({ quotes }: HomePageProps) {
             <h2 className="font-display text-2xl font-bold tracking-wide sm:text-3xl">
               <span className="text-frost">馆藏精选</span>
             </h2>
-            <a href="/gallery" className="text-sm text-lilac-500 transition-colors hover:text-violet-700 dark:text-lilac-300 dark:hover:text-white">
-              进入画廊 →
+            <a href="/gallery" className="inline-block">
+              <LiquidGlass
+                radius={999}
+                bevel={10}
+                refraction={32}
+                blur={0.2}
+                dispersion={2.0}
+                tint="transparent"
+                contentClassName="px-4 py-1.5 text-xs font-medium tracking-wide text-slate-700 dark:text-white"
+              >
+                进入画廊 →
+              </LiquidGlass>
             </a>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4" id="featured-gallery-grid"></div>

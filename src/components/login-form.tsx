@@ -52,7 +52,7 @@ export default function LoginForm({ next }: { next: string }) {
       </p>
       <button
         type="submit"
-        className="mt-4 w-full rounded-xl bg-gradient-to-r from-lilac-500 to-ice-400 px-4 py-2.5 font-medium text-white shadow-lg shadow-lilac-500/25 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        className="glass-btn glass-btn--primary mt-4 !w-full !rounded-2xl !py-3 text-base font-semibold tracking-widest"
       >
         解 封
       </button>

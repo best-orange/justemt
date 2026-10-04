@@ -33,7 +33,7 @@ export default function Card({
           <h3 className="truncate font-display font-bold text-slate-900 group-hover:text-violet-700 dark:text-white dark:group-hover:text-lilac-300">
             {title}
           </h3>
-          {isPrivate && <span className="shrink-0 rounded-full bg-lilac-400/15 px-2 py-0.5 text-[10px] text-violet-700 dark:text-lilac-200">私密</span>}
+          {isPrivate && <span className="glass-pill shrink-0 !px-2 !py-0.5 text-[10px] font-medium text-violet-700 dark:text-lilac-200">私密</span>}
         </div>
         {dateStr && <time className="shrink-0 text-sm text-slate-400">{dateStr}</time>}
       </div>
@@ -43,7 +43,7 @@ export default function Card({
       {tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <span key={tag} className="rounded-full border border-lilac-400/30 px-2.5 py-0.5 text-xs text-lilac-500 dark:text-lilac-300">
+            <span key={tag} className="glass-pill !px-2.5 !py-0.5 text-xs text-lilac-600 dark:text-lilac-200">
               {tag}
             </span>
           ))}

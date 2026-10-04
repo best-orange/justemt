@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { GlassIconButton } from '@/components/liquid-glass';
 
 type GalleryPhoto = {
   id: string;
@@ -66,7 +67,7 @@ export default function GalleryClient() {
       button.type = 'button';
       button.dataset.tag = label;
       button.textContent = label === '*' ? '全部' : label;
-      button.className = 'tag-chip rounded-full border border-lilac-400/30 px-4 py-1.5 text-sm text-slate-600 dark:text-slate-300';
+      button.className = 'tag-chip px-4 py-1.5 text-sm';
       if (active) button.classList.add('is-active');
       button.addEventListener('click', () => {
         if (activeTag === label) return;
@@ -254,20 +255,35 @@ export default function GalleryClient() {
     /* 动态灯箱：缩略图先到，原图随后替换，弱网下不会出现空白大图。 */
     <div
       id="lightbox"
-      className="pointer-events-none fixed inset-0 z-[80] hidden items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      className="pointer-events-none fixed inset-0 z-[80] hidden items-center justify-center bg-black/60 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label="作品预览"
     >
-      <button id="lb-close" type="button" aria-label="关闭" className="absolute right-5 top-5 z-20 rounded-full p-2 text-white/70 transition-colors hover:text-white">
-        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-      </button>
-      <button id="lb-prev" aria-label="上一张" className="absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full p-4 text-white/70 transition-colors hover:text-white sm:left-6">
-        <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-      </button>
-      <button id="lb-next" aria-label="下一张" className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full p-4 text-white/70 transition-colors hover:text-white sm:right-6">
-        <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-      </button>
+      <GlassIconButton
+        id="lb-close"
+        type="button"
+        aria-label="关闭"
+        wrapperClassName="absolute right-5 top-5 z-20"
+      >
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+      </GlassIconButton>
+      <GlassIconButton
+        id="lb-prev"
+        type="button"
+        aria-label="上一张"
+        wrapperClassName="absolute left-2 top-1/2 z-10 -translate-y-1/2 sm:left-6"
+      >
+        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      </GlassIconButton>
+      <GlassIconButton
+        id="lb-next"
+        type="button"
+        aria-label="下一张"
+        wrapperClassName="absolute right-2 top-1/2 z-10 -translate-y-1/2 sm:right-6"
+      >
+        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+      </GlassIconButton>
       <figure className="w-full max-h-[88vh] max-w-[92vw] text-center">
         <div className="relative min-h-24 min-w-24">
           <img id="lb-preview" alt="" decoding="async" className="mx-auto max-h-[78vh] max-w-full rounded-xl object-contain opacity-70 blur-sm transition-opacity" />

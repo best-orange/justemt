@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { GlassIconButton } from '@/components/liquid-glass';
 
 type Track = { id: string; name: string; artist: string; cover: string };
 type PlayerState = {
@@ -276,10 +277,10 @@ export default function MusicPlayer() {
           <span id="mp-artist-compact" className="mt-0.5 block truncate text-[0.68rem] text-slate-500 dark:text-slate-300"></span>
         </button>
 
-        <button id="mp-play-compact" type="button" aria-label="播放" className="music-control rounded-full p-2 text-violet-700 transition-colors hover:bg-lilac-400/15 dark:text-lilac-300">
+        <GlassIconButton id="mp-play-compact" type="button" aria-label="播放" wrapperClassName="!p-0 text-violet-700 dark:text-lilac-300">
           <svg id="mp-icon-play-compact" className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 0 1 0 1.971l-11.54 6.347a1.125 1.125 0 0 1-1.667-.985V5.653Z" /></svg>
           <svg id="mp-icon-pause-compact" className="hidden h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
-        </button>
+        </GlassIconButton>
       </div>
 
       <div id="mp-panel" className="music-player__panel hidden border-t border-lilac-400/15 px-4 pb-4 pt-3">
@@ -292,19 +293,19 @@ export default function MusicPlayer() {
         <input id="mp-progress" className="music-progress mt-4 w-full" type="range" min="0" max="0" step="1" defaultValue="0" aria-label="播放进度" />
         <div className="mt-1 flex justify-between text-[0.65rem] tabular-nums text-slate-400 dark:text-slate-300" aria-hidden="true"><span id="mp-current">0:00</span><span id="mp-duration">0:00</span></div>
         <div className="mt-3 flex items-center justify-center gap-2">
-          <button id="mp-repeat" type="button" aria-label="循环关闭" aria-pressed="false" className="music-control rounded-full p-2 text-slate-500 transition-colors hover:bg-lilac-400/15 dark:text-slate-300">
+          <GlassIconButton id="mp-repeat" type="button" aria-label="循环关闭" aria-pressed="false" wrapperClassName="!p-0">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.6" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M17 2.75 20.25 6 17 9.25M4 12V9.5A3.5 3.5 0 0 1 7.5 6h12.75M7 21.25 3.75 18 7 14.75M20 12v2.5a3.5 3.5 0 0 1-3.5 3.5H3.75" /></svg>
-          </button>
-          <button id="mp-prev" type="button" aria-label="上一首" className="music-control rounded-full p-2 text-slate-500 transition-colors hover:bg-lilac-400/15 dark:text-slate-300">
+          </GlassIconButton>
+          <GlassIconButton id="mp-prev" type="button" aria-label="上一首" wrapperClassName="!p-0">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.6" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 6.75v10.5L10.5 12l9-5.25ZM4.5 6.75v10.5" /></svg>
-          </button>
-          <button id="mp-play" type="button" aria-label="播放" className="music-control rounded-full bg-violet-700 p-3 text-white shadow-sm transition-colors hover:bg-violet-800 dark:bg-lilac-400 dark:text-night-950 dark:hover:bg-lilac-300">
+          </GlassIconButton>
+          <GlassIconButton id="mp-play" type="button" aria-label="播放" variant="accent" wrapperClassName="!p-0">
             <svg id="mp-icon-play" className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 0 1 0 1.971l-11.54 6.347a1.125 1.125 0 0 1-1.667-.985V5.653Z" /></svg>
             <svg id="mp-icon-pause" className="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
-          </button>
-          <button id="mp-next" type="button" aria-label="下一首" className="music-control rounded-full p-2 text-slate-500 transition-colors hover:bg-lilac-400/15 dark:text-slate-300">
+          </GlassIconButton>
+          <GlassIconButton id="mp-next" type="button" aria-label="下一首" wrapperClassName="!p-0">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.6" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 6.75 9 5.25-9 5.25V6.75ZM19.5 6.75v10.5" /></svg>
-          </button>
+          </GlassIconButton>
         </div>
       </div>
 
